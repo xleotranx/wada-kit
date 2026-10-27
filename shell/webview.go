@@ -25,6 +25,7 @@ func newWebPage(win *mygo.Window) (shell.WebView, error) {
 func (p webPage) Show(c *ui.Context) ui.Element { return ui.WebView(c, p.v) }
 func (p webPage) LoadFile(path string) error    { return p.v.Page().LoadFile(path) }
 func (p webPage) Reload()                       { p.v.Page().ReloadIgnoringCache() }
+func (p webPage) SetZoom(f float64)             { p.v.Page().SetZoomFactor(f) }
 func (p webPage) Capture() ([]byte, error)      { return p.v.CapturePage() }
 func (p webPage) Close()                        { p.v.Destroy() }
 

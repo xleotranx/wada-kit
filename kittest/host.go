@@ -28,8 +28,11 @@ type Host struct {
 	Background bool            // the window is not in front
 	Hidden     bool            // what SetHidden set last
 	Data       string          // what DataDir returns
-	// Web is what NewWebView gives a plugin; nil returns shell.ErrNoWebViews.
-	Web *WebView
+	// Web makes the pages NewWebView gives a plugin, given how many it made
+	// before, so a test can script each; nil returns shell.ErrNoWebViews.
+	// WebViews are the pages made, in order.
+	Web      func(n int) *WebView
+	WebViews []*WebView
 }
 
 // New installs the fake: it is its own factory, so a test reads what it
@@ -78,7 +81,9 @@ func (h *Host) NewWebView() (shell.WebView, error) {
 	if h.Web == nil {
 		return nil, shell.ErrNoWebViews
 	}
-	return h.Web, nil
+	v := h.Web(len(h.WebViews))
+	h.WebViews = append(h.WebViews, v)
+	return v, nil
 }
 
 // WebView fakes a page: it records what the plugin loads, and its Eval and
@@ -87,6 +92,7 @@ func (h *Host) NewWebView() (shell.WebView, error) {
 type WebView struct {
 	Loaded  []string // the files LoadFile was given, in order
 	Reloads int
+	Zoom    float64 // what SetZoom set last
 	Closed  bool
 	// EvalFunc answers Eval, from the plugin's worker; nil returns nothing.
 	EvalFunc func(ctx context.Context, code string) (any, error)
@@ -100,6 +106,7 @@ func (v *WebView) Show(c *ui.Context) ui.Element { return ui.Box(c).Label("Web p
 
 func (v *WebView) LoadFile(path string) error { v.Loaded = append(v.Loaded, path); return nil }
 func (v *WebView) Reload()                    { v.Reloads++ }
+func (v *WebView) SetZoom(f float64)          { v.Zoom = f }
 func (v *WebView) Capture() ([]byte, error)   { return v.PNG, nil }
 func (v *WebView) Close()                     { v.Closed = true }
 

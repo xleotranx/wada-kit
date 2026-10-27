@@ -103,8 +103,8 @@ in front (`Foreground`), hiding the window and bringing it back to the front
 (`SetHidden`, as while capturing the screen behind it) and the app's data folder (`DataDir`, where `settings.db`
 lives; a plugin names its files after its ID; empty in tests) and web pages beside the
 native controls (`NewWebView`, a `shell.WebView` over a `mygo.WebView` of the window,
-which the plugin places with `Show`, loads, evaluates scripts in, captures and closes;
-`shell.ErrNoWebViews` in tests, where `kittest.Host.Web` fakes one). A clicked notification
+which the plugin places with `Show`, loads, zooms, evaluates scripts in, captures and
+closes; `shell.ErrNoWebViews` in tests, where `kittest.Host.Web` makes fakes). A clicked notification
 brings the window to the front, then its ID is emitted on `shell.NoticeClicked`. The
 app's notifications are cleared when it becomes active. On macOS they need a
 packaged app (`mygo dev` or `mygo build`); under `go run` nothing is shown.

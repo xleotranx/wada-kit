@@ -134,6 +134,9 @@ type WebView interface {
 	LoadFile(path string) error
 	// Reload loads the page again, skipping the cache.
 	Reload()
+	// SetZoom scales the page; 1 is 100%. Its layout is as wide as the
+	// room it shows in, divided by the zoom.
+	SetZoom(f float64)
 	// Eval runs JavaScript in the page and returns its result decoded from
 	// JSON, with promises awaited, as statements of an async function.
 	Eval(ctx context.Context, code string) (any, error)
