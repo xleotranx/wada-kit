@@ -86,6 +86,12 @@ Window comes last. Other shortcuts are window shortcuts. The menu is rebuilt
 whenever plugins change state and whenever the commands change, as when a plugin
 contributes one from a scope it opens later.
 
+A command's `Global` keys work while the app is in the background too. In the
+running app the shell binds them through `mygo.GlobalShortcut` for as long as a command
+asks for them, lets them go when none does and when it closes, and runs the command
+on the UI thread when they are pressed. Keys another app holds stay unbound; the
+shell says so once in a toast, until no command asks for them.
+
 `shell.Host` gives plugins the window services they need: show a page, toasts,
 clipboard, opening links, desktop notifications (`Notify`), whether the window is
 in front (`Foreground`), hiding the window and bringing it back to the front

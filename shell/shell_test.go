@@ -3,7 +3,9 @@ package shell
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -393,5 +395,78 @@ func TestShortcutsFollowTheCommands(t *testing.T) {
 	tt.Key(ui.Cmd, ui.KeyJ)
 	if ran != 1 || len(s.keys.bindings) != 0 {
 		t.Fatalf("a withdrawn command's shortcut ran: %d, bindings %d", ran, len(s.keys.bindings))
+	}
+}
+
+// System-wide shortcuts follow the commands: bound while a command asks for
+// them, run on the UI thread when pressed, let go when it no longer does or
+// the shell closes; keys another app holds are reported once.
+func TestGlobalShortcutsFollowTheCommands(t *testing.T) {
+	var ctx *kernel.Context
+	p := &plugin{id: "notes", setup: func(c *kernel.Context) error { ctx = c; return nil }}
+	bound := map[string]func(){}
+	var queue []func()
+	s, err := New(Options{Post: func(fn func()) { queue = append(queue, fn) }, Store: kerneltest.NewStore(),
+		BindGlobal: func(keys string, fn func()) error {
+			if keys == "CmdOrCtrl+Shift+3" {
+				return errors.New("taken")
+			}
+			bound[keys] = fn
+			return nil
+		},
+		UnbindGlobal: func(keys string) { delete(bound, keys) }}, p.New)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	run := func() {
+		for len(queue) > 0 {
+			q := queue
+			queue = nil
+			for _, fn := range q {
+				fn()
+			}
+		}
+	}
+	ran := 0
+	later := ctx.NewScope()
+	kernel.Contribute(later, kernel.Commands, "notes.capture", 0, kernel.Command{Title: "Capture…", Keys: []string{"cmd+shift+2"},
+		Global: "ctrl+cmd+shift+2", Run: func() { ran++ }})
+	kernel.Contribute(later, kernel.Commands, "notes.taken", 1, kernel.Command{Title: "Taken", Global: "cmd+shift+3", Run: func() {}})
+	run()
+	press, ok := bound["Ctrl+CmdOrCtrl+Shift+2"]
+	if !ok || len(bound) != 1 {
+		t.Fatalf("bound %v", slices.Collect(maps.Keys(bound)))
+	}
+	press()
+	if ran != 0 {
+		t.Fatal("the command ran off the UI thread")
+	}
+	run()
+	if ran != 1 {
+		t.Fatal("the shortcut did not run its command")
+	}
+	kernel.Contribute(ctx, kernel.Commands, "notes.more", 2, kernel.Command{Title: "More", Run: func() {}})
+	run()
+	if len(s.host.toasts) != 1 || !strings.Contains(s.host.toasts[0].Title, "Taken") {
+		t.Fatalf("toasts %+v", s.host.toasts)
+	}
+	later.Dispose()
+	run()
+	if len(bound) != 0 {
+		t.Fatalf("a withdrawn command kept %v", slices.Collect(maps.Keys(bound)))
+	}
+	press()
+	run()
+	if ran != 1 {
+		t.Fatal("a withdrawn command's shortcut still ran")
+	}
+	kernel.Contribute(ctx, kernel.Commands, "notes.again", 3, kernel.Command{Title: "Again", Global: "ctrl+cmd+shift+2", Run: func() {}})
+	run()
+	s.Close(context.Background())
+	if len(bound) != 0 {
+		t.Fatal("closing kept a shortcut bound")
 	}
 }

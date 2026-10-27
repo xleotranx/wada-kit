@@ -42,7 +42,7 @@ Import rules, enforced by depguard in the kit's and the app's `.golangci.yml`:
 | `Topic[T]` | an event: `On`, `Emit` | many listeners |
 | `Pipeline[T]` | ordered transforms over a value: `Transform`, `Run` | many transforms |
 | `Point[T]` | a collection of entries: `Contribute`, `Items`, `Invoke` | many entries |
-| `Commands` | the kernel's own `Point[Command]`: title, menu, accelerators, run | many |
+| `Commands` | the kernel's own `Point[Command]`: title, menu, accelerators, a system-wide shortcut, run | many |
 | `Task` | a replaceable background job (`Go`); stale results are dropped | — |
 | `Settings`, `Setting[T]` | JSON values namespaced to the plugin; `Setting.Get` keeps what it decoded until a setting changes | one namespace per plugin |
 
@@ -163,7 +163,8 @@ dropped, including failure reports from `Spawn` workers that panic after disposa
 - Entry IDs: `<plugin id>.<name>`; the kernel enforces the prefix.
 - Shortcuts are fixed: each command declares its accelerators, and there is no
   remapping. The shell gives a command's first key to the menu bar when it has a
-  `Menu`; its other keys are window shortcuts.
+  `Menu`; its other keys are window shortcuts. `Global` names keys that run the
+  command while the app is in the background too.
 
 ## Storage
 

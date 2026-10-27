@@ -45,6 +45,11 @@ type Options struct {
 	Foreground func() bool
 	// SetHidden hides the window or shows it in front; nil in tests.
 	SetHidden func(hidden bool)
+	// BindGlobal binds a system-wide shortcut, in menu form such as
+	// "Ctrl+CmdOrCtrl+Shift+2", to fn; UnbindGlobal lets it go. Nil where
+	// there are none, as in tests that don't fake them.
+	BindGlobal   func(keys string, fn func()) error
+	UnbindGlobal func(keys string)
 	// Clipboard reads the clipboard for a paste; nil in tests, where it is empty.
 	Clipboard func() shell.Clipboard
 	// DataDir is where plugins keep their files; empty in tests.
@@ -60,6 +65,9 @@ type Shell struct {
 	accel  map[string]accelerator // parsed command shortcut strings, remembered so frames need not parse them
 	keys   shortcutTable
 	failed map[string]failure // the failure last reported for each plugin, by ID
+	// globals are the system-wide shortcuts bound, by their menu form, and
+	// refused those another app holds, until no command asks for them.
+	globals, refused map[string]bool
 }
 
 // failure is what the shell last told the user about a plugin.
@@ -105,7 +113,13 @@ func (s *Shell) Start() error {
 }
 
 // Close disposes every plugin and waits for their workers.
-func (s *Shell) Close(ctx context.Context) error { return s.Kernel.Close(ctx) }
+func (s *Shell) Close(ctx context.Context) error {
+	for keys := range s.globals {
+		s.opts.UnbindGlobal(keys)
+	}
+	s.globals = nil
+	return s.Kernel.Close(ctx)
+}
 
 // NoticeClicked tells plugins the user clicked the notification with this ID.
 // Call it on the UI thread.
@@ -313,10 +327,66 @@ func (s *Shell) run(e kernel.Entry[kernel.Command]) {
 	})
 }
 
+// bindGlobals binds the system-wide shortcuts the commands ask for and lets
+// go of the rest. A press runs whichever command asks for those keys then,
+// on the UI thread.
+func (s *Shell) bindGlobals() {
+	if s.opts.BindGlobal == nil || s.opts.UnbindGlobal == nil {
+		return
+	}
+	wanted := map[string]string{} // menu form → the command's title
+	for _, e := range kernel.Items(s.Kernel, kernel.Commands) {
+		if e.Value.Global == "" {
+			continue
+		}
+		if a, err := parseAccelerator(e.Value.Global); err == nil {
+			wanted[a.menu] = e.Value.Title
+		}
+	}
+	if s.globals == nil {
+		s.globals, s.refused = map[string]bool{}, map[string]bool{}
+	}
+	for keys := range s.globals {
+		if _, ok := wanted[keys]; !ok {
+			s.opts.UnbindGlobal(keys)
+			delete(s.globals, keys)
+		}
+	}
+	for keys := range s.refused {
+		if _, ok := wanted[keys]; !ok {
+			delete(s.refused, keys)
+		}
+	}
+	for keys, title := range wanted {
+		if s.globals[keys] || s.refused[keys] {
+			continue
+		}
+		err := s.opts.BindGlobal(keys, func() { s.opts.Post(func() { s.runGlobal(keys) }) })
+		if err != nil {
+			s.refused[keys] = true
+			s.host.Toast(ui.Toast{Title: "The shortcut for " + strings.TrimSuffix(title, "…") + " is not free",
+				Description: keys + " does nothing outside this window: " + err.Error(), Type: components.ToastWarning})
+			continue
+		}
+		s.globals[keys] = true
+	}
+}
+
+// runGlobal runs the command that asks for keys as a system-wide shortcut.
+func (s *Shell) runGlobal(keys string) {
+	for _, e := range kernel.Items(s.Kernel, kernel.Commands) {
+		if a, err := parseAccelerator(e.Value.Global); err == nil && e.Value.Global != "" && a.menu == keys {
+			s.run(e)
+			return
+		}
+	}
+}
+
 // defaultMenus are the menus of an app that names none.
 var defaultMenus = []string{"File", "View", "Help"}
 
 func (s *Shell) buildMenu() {
+	s.bindGlobals()
 	if s.opts.SetMenu == nil {
 		return
 	}

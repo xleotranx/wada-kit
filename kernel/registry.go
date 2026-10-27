@@ -377,6 +377,11 @@ type Command struct {
 	Keys    []string    // fixed accelerators, e.g. "cmd+shift+k"; parsed by the shell
 	Enabled func() bool // nil means always enabled
 	Run     func()
+	// Global is a shortcut, in the form of Keys, that runs the command while
+	// the app is in the background too; empty for none. The shell binds it
+	// for as long as the command is contributed. Keys another app holds stay
+	// unbound, and the shell says so.
+	Global string
 }
 
 var Commands = NewPoint[Command]("kernel.commands")

@@ -96,6 +96,7 @@ func Run(app App, plugins ...kernel.Factory) {
 				}
 			},
 			Notify: notifier(), Clipboard: readClipboard, DataDir: dir, Foreground: func() bool { return win.IsVisible() && !win.IsMinimized() && win.IsFocused() },
+			BindGlobal: mygo.GlobalShortcut.Register, UnbindGlobal: mygo.GlobalShortcut.Unregister,
 			SetHidden: func(hidden bool) {
 				if hidden {
 					win.Hide()
