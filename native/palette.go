@@ -29,6 +29,18 @@ type Palette struct {
 	// Projects are the colors a project can take, in the order new projects
 	// take them.
 	Projects [5]ProjectColor
+	// Inks are the colors of marks drawn on a screenshot, the first the
+	// default. They become the image's own pixels, so they are the same in
+	// both themes.
+	Inks [5]Ink
+}
+
+// Ink is one color of a mark on a picture: Mark for its lines and badge,
+// On for the badge's number, and Halo, a thin edge that keeps the mark
+// readable over light and dark content.
+type Ink struct {
+	Name           string
+	Mark, On, Halo ui.Color
 }
 
 // ProjectColor is one project's color: Mark for dots and lines, Tint behind
@@ -43,6 +55,16 @@ var (
 	projectsLight = [5]ui.Color{ui.Hex("#2f5fd0"), ui.Hex("#7445c8"), ui.Hex("#0b7f70"), ui.Hex("#c2416b"), ui.Hex("#72726a")}
 	projectsDark  = [5]ui.Color{ui.Hex("#8aabf5"), ui.Hex("#b99af2"), ui.Hex("#6fcfbf"), ui.Hex("#ee91ae"), ui.Hex("#bdb6aa")}
 )
+
+// Inks: red, orange, yellow, green and blue, saturated enough to stand out
+// from an interface, with a dark halo.
+var inks = [5]Ink{
+	{"Red", ui.Hex("#e5383b"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
+	{"Orange", ui.Hex("#f97316"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
+	{"Yellow", ui.Hex("#facc15"), ui.RGB(0, 0, 0), ui.RGBA(0, 0, 0, .55)},
+	{"Green", ui.Hex("#16a34a"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
+	{"Blue", ui.Hex("#2563eb"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
+}
 
 // PaletteFor maps the app's semantic colors onto Onevra's warm palettes.
 // The tabs sit on the strip, the page in a panel on the surface, and
@@ -158,5 +180,6 @@ func PaletteOf(t *ui.Theme) Palette {
 		DiffAddBg: t.Success.Alpha(0.12),
 		DiffDelBg: t.Danger.Alpha(0.12),
 		Projects:  projects,
+		Inks:      inks,
 	}
 }
