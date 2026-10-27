@@ -4,6 +4,8 @@
 package kittest
 
 import (
+	"context"
+
 	"github.com/xleotranx/wada-kit/contract/shell"
 	"github.com/xleotranx/wada-kit/kernel"
 
@@ -26,6 +28,8 @@ type Host struct {
 	Background bool            // the window is not in front
 	Hidden     bool            // what SetHidden set last
 	Data       string          // what DataDir returns
+	// Web is what NewWebView gives a plugin; nil returns shell.ErrNoWebViews.
+	Web *WebView
 }
 
 // New installs the fake: it is its own factory, so a test reads what it
@@ -69,3 +73,39 @@ func (h *Host) Notify(n shell.Notice)      { h.Notices = append(h.Notices, n) }
 func (h *Host) Foreground() bool           { return !h.Background }
 func (h *Host) SetHidden(hidden bool)      { h.Hidden = hidden }
 func (h *Host) DataDir() string            { return h.Data }
+
+func (h *Host) NewWebView() (shell.WebView, error) {
+	if h.Web == nil {
+		return nil, shell.ErrNoWebViews
+	}
+	return h.Web, nil
+}
+
+// WebView fakes a page: it records what the plugin loads, and its Eval and
+// Capture answer what a test sets before the plugin calls them. A test reads
+// its fields on the UI thread, after the plugin's work has come back.
+type WebView struct {
+	Loaded  []string // the files LoadFile was given, in order
+	Reloads int
+	Closed  bool
+	// EvalFunc answers Eval, from the plugin's worker; nil returns nothing.
+	EvalFunc func(ctx context.Context, code string) (any, error)
+	PNG      []byte // what Capture returns
+}
+
+var _ shell.WebView = (*WebView)(nil)
+
+// Show draws a plain box where the page would show.
+func (v *WebView) Show(c *ui.Context) ui.Element { return ui.Box(c).Label("Web page") }
+
+func (v *WebView) LoadFile(path string) error { v.Loaded = append(v.Loaded, path); return nil }
+func (v *WebView) Reload()                    { v.Reloads++ }
+func (v *WebView) Capture() ([]byte, error)   { return v.PNG, nil }
+func (v *WebView) Close()                     { v.Closed = true }
+
+func (v *WebView) Eval(ctx context.Context, code string) (any, error) {
+	if v.EvalFunc == nil {
+		return nil, nil
+	}
+	return v.EvalFunc(ctx, code)
+}

@@ -4,6 +4,9 @@
 package shell
 
 import (
+	"context"
+	"errors"
+
 	"github.com/xleotranx/wada-kit/kernel"
 
 	"github.com/egoist/mygo/ui"
@@ -108,4 +111,34 @@ type Host interface {
 	Plugins() []kernel.Status
 	Enable(id string) error
 	Disable(id string) error
+
+	// NewWebView makes a web page for a plugin's view to show. The plugin
+	// owns it and closes it when it is done, at the latest when it is
+	// disposed. It returns ErrNoWebViews where the window has none.
+	NewWebView() (WebView, error)
+}
+
+// ErrNoWebViews is what Host.NewWebView returns where there are none.
+var ErrNoWebViews = errors.New("this window shows no web pages")
+
+// WebView is a web page beside the window's native controls. Its methods
+// are safe from any goroutine; Eval and Capture wait for the page, so call
+// them from kernel.Go work.
+type WebView interface {
+	// Show places the page where the view builds the element it returns,
+	// as ui.WebView does: it stretches across its container and takes the
+	// room along it with Grow or a size. The page hides while no frame
+	// builds it and keeps what it shows.
+	Show(c *ui.Context) ui.Element
+	// LoadFile shows a local HTML file; the page may load what sits beside it.
+	LoadFile(path string) error
+	// Reload loads the page again, skipping the cache.
+	Reload()
+	// Eval runs JavaScript in the page and returns its result decoded from
+	// JSON, with promises awaited, as statements of an async function.
+	Eval(ctx context.Context, code string) (any, error)
+	// Capture returns a PNG of the page as it shows.
+	Capture() ([]byte, error)
+	// Close takes the page away for good.
+	Close()
 }

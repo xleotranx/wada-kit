@@ -57,6 +57,9 @@ type Options struct {
 	Clipboard func() shell.Clipboard
 	// DataDir is where plugins keep their files; empty in tests.
 	DataDir string
+	// NewWebView makes a web page in the window; nil in tests, where
+	// Host.NewWebView returns shell.ErrNoWebViews.
+	NewWebView func() (shell.WebView, error)
 }
 
 // Shell is a kernel plus the window that shows it.
@@ -94,7 +97,7 @@ func New(opts Options, plugins ...kernel.Factory) (*Shell, error) {
 	// The shell reaches its own plugin as the one set up now.
 	newHost := func() kernel.Plugin {
 		s.host = &host{k: s.Kernel, setTheme: opts.SetTheme, setVibrancy: opts.SetVibrancy, notify: opts.Notify,
-			foreground: opts.Foreground, setHidden: opts.SetHidden, clipboard: opts.Clipboard, dataDir: opts.DataDir}
+			foreground: opts.Foreground, setHidden: opts.SetHidden, clipboard: opts.Clipboard, dataDir: opts.DataDir, newWebView: opts.NewWebView}
 		return s.host
 	}
 	if err := s.Kernel.Install(append([]kernel.Factory{newHost}, plugins...)...); err != nil {
@@ -451,6 +454,7 @@ type host struct {
 	foreground  func() bool
 	setHidden   func(hidden bool)
 	dataDir     string
+	newWebView  func() (shell.WebView, error)
 	appearance  *kernel.Setting[string]
 	page        string
 	toasts      []ui.Toast
@@ -562,3 +566,10 @@ func (h *host) applyTheme(mode string) {
 func (h *host) Plugins() []kernel.Status { return h.k.Plugins() }
 func (h *host) Enable(id string) error   { return h.k.Enable(id) }
 func (h *host) Disable(id string) error  { return h.k.Disable(id) }
+
+func (h *host) NewWebView() (shell.WebView, error) {
+	if h.newWebView == nil {
+		return nil, shell.ErrNoWebViews
+	}
+	return h.newWebView()
+}
