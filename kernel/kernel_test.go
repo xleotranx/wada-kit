@@ -177,10 +177,10 @@ func TestTaskDropsSupersededAndDisposedResults(t *testing.T) {
 func TestRequirementsBlockAndUnblock(t *testing.T) {
 	var got agent
 	var log []string
-	b := backend("opencode")
+	b := backend("primary")
 	b.setup = func(c *kernel.Context) error {
 		c.OnDispose(func() { log = append(log, "backend") })
-		return kernel.Provide[agent](c, agentKey, named("opencode"))
+		return kernel.Provide[agent](c, agentKey, named("primary"))
 	}
 	chat := consumer("chat", &got)
 	inner := chat.setup
@@ -190,10 +190,10 @@ func TestRequirementsBlockAndUnblock(t *testing.T) {
 	}
 	// Installed consumer-first: setup still runs provider-first.
 	h := kerneltest.New(t, chat.New, b.New)
-	if got == nil || got.Name() != "opencode" || state(t, h, "chat").State != kernel.Active {
+	if got == nil || got.Name() != "primary" || state(t, h, "chat").State != kernel.Active {
 		t.Fatalf("chat did not get the backend: %v", got)
 	}
-	if err := h.Disable("opencode"); err != nil {
+	if err := h.Disable("primary"); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(log, []string{"chat", "backend"}) {
@@ -206,7 +206,7 @@ func TestRequirementsBlockAndUnblock(t *testing.T) {
 	if _, ok := kernel.Use(h, agentKey); ok {
 		t.Fatal("service still provided after its plugin was disabled")
 	}
-	if err := h.Enable("opencode"); err != nil {
+	if err := h.Enable("primary"); err != nil {
 		t.Fatal(err)
 	}
 	if state(t, h, "chat").State != kernel.Active {
@@ -217,31 +217,31 @@ func TestRequirementsBlockAndUnblock(t *testing.T) {
 
 func TestSwitchingProviders(t *testing.T) {
 	var got agent
-	pi := backend("pi")
-	pi.m.DefaultOff = true
-	h := kerneltest.New(t, backend("opencode").New, pi.New, consumer("chat", &got).New)
-	if state(t, h, "pi").State != kernel.Disabled {
+	secondary := backend("secondary")
+	secondary.m.DefaultOff = true
+	h := kerneltest.New(t, backend("primary").New, secondary.New, consumer("chat", &got).New)
+	if state(t, h, "secondary").State != kernel.Disabled {
 		t.Fatal("DefaultOff plugin started")
 	}
-	if err := h.Enable("pi"); err == nil || !strings.Contains(err.Error(), "already provided") {
+	if err := h.Enable("secondary"); err == nil || !strings.Contains(err.Error(), "already provided") {
 		t.Fatalf("second provider enabled: %v", err)
 	}
-	if err := h.Disable("opencode"); err != nil {
+	if err := h.Disable("primary"); err != nil {
 		t.Fatal(err)
 	}
-	if err := h.Enable("pi"); err != nil {
+	if err := h.Enable("secondary"); err != nil {
 		t.Fatal(err)
 	}
-	if got.Name() != "pi" || state(t, h, "chat").State != kernel.Active {
+	if got.Name() != "secondary" || state(t, h, "chat").State != kernel.Active {
 		t.Fatalf("chat uses %v", got)
 	}
 	closeClean(t, h)
 }
 
 func TestBothProvidersEnabledFailsTheLater(t *testing.T) {
-	h := kerneltest.New(t, backend("opencode").New, backend("pi").New)
-	if st := state(t, h, "pi"); st.State != kernel.Failed || !strings.Contains(st.Err.Error(), "opencode") {
-		t.Fatalf("pi status %+v", st)
+	h := kerneltest.New(t, backend("primary").New, backend("secondary").New)
+	if st := state(t, h, "secondary"); st.State != kernel.Failed || !strings.Contains(st.Err.Error(), "primary") {
+		t.Fatalf("secondary status %+v", st)
 	}
 	closeClean(t, h)
 }
