@@ -86,6 +86,9 @@ type Host interface {
 	Notify(n Notice)
 	// Foreground reports that the window is on screen and focused.
 	Foreground() bool
+	// SetHidden takes the window off the screen, as while capturing what
+	// is behind it, or puts it back in front and focused.
+	SetHidden(hidden bool)
 	// DataDir is the folder where the app keeps its data; a plugin keeps
 	// its files there, named after its ID. Empty when nothing may be written,
 	// as in tests.

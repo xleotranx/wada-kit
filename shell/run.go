@@ -96,6 +96,14 @@ func Run(app App, plugins ...kernel.Factory) {
 				}
 			},
 			Notify: notifier(), Clipboard: readClipboard, DataDir: dir, Foreground: func() bool { return win.IsVisible() && !win.IsMinimized() && win.IsFocused() },
+			SetHidden: func(hidden bool) {
+				if hidden {
+					win.Hide()
+					return
+				}
+				win.Show()
+				win.Focus()
+			},
 		}, plugins...)
 		if err != nil {
 			log.Fatal(err)

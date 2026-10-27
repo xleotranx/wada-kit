@@ -24,6 +24,7 @@ type Host struct {
 	Notices    []shell.Notice
 	Clip       shell.Clipboard // what Clipboard returns
 	Background bool            // the window is not in front
+	Hidden     bool            // what SetHidden set last
 	Data       string          // what DataDir returns
 }
 
@@ -66,4 +67,5 @@ func (h *Host) Enable(id string) error     { h.Toggled = append(h.Toggled, "+"+i
 func (h *Host) Disable(id string) error    { h.Toggled = append(h.Toggled, "-"+id); return nil }
 func (h *Host) Notify(n shell.Notice)      { h.Notices = append(h.Notices, n) }
 func (h *Host) Foreground() bool           { return !h.Background }
+func (h *Host) SetHidden(hidden bool)      { h.Hidden = hidden }
 func (h *Host) DataDir() string            { return h.Data }

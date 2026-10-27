@@ -88,7 +88,8 @@ contributes one from a scope it opens later.
 
 `shell.Host` gives plugins the window services they need: show a page, toasts,
 clipboard, opening links, desktop notifications (`Notify`), whether the window is
-in front (`Foreground`) and the app's data folder (`DataDir`, where `settings.db`
+in front (`Foreground`), hiding the window and bringing it back to the front
+(`SetHidden`, as while capturing the screen behind it) and the app's data folder (`DataDir`, where `settings.db`
 lives; a plugin names its files after its ID; empty in tests). A clicked notification
 brings the window to the front, then its ID is emitted on `shell.NoticeClicked`. The
 app's notifications are cleared when it becomes active. On macOS they need a

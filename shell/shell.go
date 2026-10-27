@@ -43,6 +43,8 @@ type Options struct {
 	// is shown and the window counts as in front.
 	Notify     func(shell.Notice)
 	Foreground func() bool
+	// SetHidden hides the window or shows it in front; nil in tests.
+	SetHidden func(hidden bool)
 	// Clipboard reads the clipboard for a paste; nil in tests, where it is empty.
 	Clipboard func() shell.Clipboard
 	// DataDir is where plugins keep their files; empty in tests.
@@ -80,7 +82,7 @@ func New(opts Options, plugins ...kernel.Factory) (*Shell, error) {
 	// The shell reaches its own plugin as the one set up now.
 	newHost := func() kernel.Plugin {
 		s.host = &host{k: s.Kernel, setTheme: opts.SetTheme, setVibrancy: opts.SetVibrancy, notify: opts.Notify,
-			foreground: opts.Foreground, clipboard: opts.Clipboard, dataDir: opts.DataDir}
+			foreground: opts.Foreground, setHidden: opts.SetHidden, clipboard: opts.Clipboard, dataDir: opts.DataDir}
 		return s.host
 	}
 	if err := s.Kernel.Install(append([]kernel.Factory{newHost}, plugins...)...); err != nil {
@@ -363,6 +365,7 @@ type host struct {
 	notify      func(shell.Notice)
 	clipboard   func() shell.Clipboard
 	foreground  func() bool
+	setHidden   func(hidden bool)
 	dataDir     string
 	appearance  *kernel.Setting[string]
 	page        string
@@ -421,6 +424,12 @@ func (h *host) Notify(n shell.Notice) {
 
 func (h *host) Foreground() bool { return h.foreground == nil || h.foreground() }
 func (h *host) DataDir() string  { return h.dataDir }
+
+func (h *host) SetHidden(hidden bool) {
+	if h.setHidden != nil {
+		h.setHidden(hidden)
+	}
+}
 
 func (h *host) Appearance() string {
 	switch v := h.appearance.Get(); v {
