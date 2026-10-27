@@ -1,6 +1,6 @@
 module github.com/xleotranx/wada-kit
 
-go 1.27.2
+go 1.27.3
 
 tool github.com/egoist/mygo/cmd/mygo
 
