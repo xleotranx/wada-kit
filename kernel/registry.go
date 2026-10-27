@@ -314,7 +314,7 @@ func (k *Kernel) pointMoved(name string) {
 	first := len(k.moved) == 0
 	k.moved[name] = true // before posting, which may run at once
 	if first {
-		k.opts.Post(k.announcePoints)
+		k.post(k.announcePoints)
 	}
 }
 

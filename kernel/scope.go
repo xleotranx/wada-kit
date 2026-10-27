@@ -129,16 +129,36 @@ func (s *Scope) NewScope() *Scope {
 // Dispose cancels Lifetime, then undoes every registration. Idempotent.
 func (s *Scope) Dispose() { s.s.dispose() }
 
-// Post runs fn on the UI thread if the scope is still alive then. Safe on any
-// goroutine.
+// Post runs fn on the UI thread if the scope is still alive then, and draws a
+// frame after it. Safe on any goroutine.
 func (s *Scope) Post(fn func()) {
 	sc := s.s
-	sc.k.opts.Post(func() {
+	sc.k.post(func() {
 		if sc.alive {
 			sc.k.call(sc.plugin, fn)
 		}
 	})
 }
+
+// PostQuiet runs fn on the UI thread if the scope is still alive then,
+// without drawing a frame for it: fn, and whatever it calls (as the listeners
+// of an event it emits), call Invalidate when what the window shows changed.
+// A closure after which nothing did still gets a frame within the kernel's
+// QuietRedraw. It is for frequent posts that mostly change what is not on
+// show, as a backend's events for conversations in the background. Safe on
+// any goroutine.
+func (s *Scope) PostQuiet(fn func()) {
+	sc := s.s
+	sc.k.postQuiet(func() {
+		if sc.alive {
+			sc.k.call(sc.plugin, fn)
+		}
+	})
+}
+
+// Invalidate asks for a frame, as after a change of what the window shows
+// made in a PostQuiet closure. Call it on the UI thread.
+func (s *Scope) Invalidate() { s.s.k.invalidate() }
 
 // Spawn runs a long-lived worker bound to Lifetime and reports whether it
 // started: it does not once the scope is disposed. Close waits for it to

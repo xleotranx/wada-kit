@@ -29,10 +29,13 @@ type Options struct {
 	// in order: a command shows in the menu its Menu names, and one named
 	// nowhere here in none. File is followed by Edit, and View ends with the
 	// developer tools. Without them: File, View, Help.
-	Menus  []string
-	Post   func(func())
-	Store  kernel.Store
-	Strict bool
+	Menus []string
+	// Post and Invalidate are the kernel's: Post schedules on the UI thread
+	// and, without Invalidate, draws a frame after each closure.
+	Post       func(func())
+	Invalidate func()
+	Store      kernel.Store
+	Strict     bool
 	// SetTitle and SetMenu reach the native window and menu bar; nil in tests.
 	SetTitle func(string)
 	SetMenu  func(*mygo.Menu)
@@ -86,7 +89,8 @@ var restartPolicy = kernel.Restart{Max: 3, Within: time.Minute}
 // New installs the shell's own plugin and then plugins, in that order.
 func New(opts Options, plugins ...kernel.Factory) (*Shell, error) {
 	s := &Shell{opts: opts, failed: map[string]failure{}}
-	s.Kernel = kernel.New(kernel.Options{Post: opts.Post, Store: opts.Store, Strict: opts.Strict, Restart: restartPolicy})
+	s.Kernel = kernel.New(kernel.Options{Post: opts.Post, Invalidate: opts.Invalidate, Store: opts.Store, Strict: opts.Strict,
+		Restart: restartPolicy})
 	// The shell reaches its own plugin as the one set up now.
 	newHost := func() kernel.Plugin {
 		s.host = &host{k: s.Kernel, setTheme: opts.SetTheme, setVibrancy: opts.SetVibrancy, notify: opts.Notify,
@@ -361,7 +365,7 @@ func (s *Shell) bindGlobals() {
 		if s.globals[keys] || s.refused[keys] {
 			continue
 		}
-		err := s.opts.BindGlobal(keys, func() { s.opts.Post(func() { s.runGlobal(keys) }) })
+		err := s.opts.BindGlobal(keys, func() { s.post(func() { s.runGlobal(keys) }) })
 		if err != nil {
 			s.refused[keys] = true
 			s.host.Toast(ui.Toast{Title: "The shortcut for " + strings.TrimSuffix(title, "…") + " is not free",
@@ -370,6 +374,16 @@ func (s *Shell) bindGlobals() {
 		}
 		s.globals[keys] = true
 	}
+}
+
+// post runs fn on the UI thread and draws a frame after it.
+func (s *Shell) post(fn func()) {
+	s.opts.Post(func() {
+		fn()
+		if s.opts.Invalidate != nil {
+			s.opts.Invalidate()
+		}
+	})
 }
 
 // runGlobal runs the command that asks for keys as a system-wide shortcut.
@@ -396,7 +410,7 @@ func (s *Shell) buildMenu() {
 			continue
 		}
 		item := &mygo.MenuItem{Label: e.Value.Title, Click: func(*mygo.MenuItem, *mygo.Window) {
-			s.opts.Post(func() { s.run(e) })
+			s.post(func() { s.run(e) })
 		}}
 		if len(e.Value.Keys) > 0 {
 			if a, err := parseAccelerator(e.Value.Keys[0]); err == nil {

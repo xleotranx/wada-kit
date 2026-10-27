@@ -144,7 +144,7 @@ func (k *Kernel) save() {
 	k.opts.Background(func() {
 		pending.done <- k.opts.Store.Save(context.WithoutCancel(ctx), batch)
 		k.workers.Done()
-		k.opts.Post(func() {
+		k.post(func() {
 			if k.closed {
 				return
 			}

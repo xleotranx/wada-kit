@@ -115,6 +115,14 @@ dropped, including failure reports from `Spawn` workers that panic after disposa
 - The kernel is not safe for concurrent use. Everything runs on the UI thread except
   `Scope.Lifetime`, `Scope.Post`, the body of `Spawn` and the `work` function of `Go`.
 - Workers never touch plugin state: they return a value (`Go`) or `Post` a closure.
+- Frames: with `Options.Invalidate`, `Post` only schedules and the kernel asks for a
+  frame after each closure it posts (`Scope.Post`, task results, `PointChanged`,
+  restarts). `Scope.PostQuiet` asks for none: it is for frequent posts that mostly
+  change what is not on show, as a backend's events. Its closure, or a listener of
+  what it emits, calls `Scope.Invalidate` when what the window shows changed. A
+  quiet closure after which nothing did still gets a frame within
+  `Options.QuietRedraw` (250 ms by default), so a missed `Invalidate` shows late,
+  not never. Without `Options.Invalidate`, `Post` is taken to draw a frame itself.
 - A plugin starts every goroutine with `Spawn` or `Go`, never a `go` statement, which
   the kernel can neither recover nor wait for. A worker (a `Spawn` body or `Go` work,
   of any plugin) may `Spawn` a goroutine of its own; `Spawn` reports false, starting
@@ -236,10 +244,13 @@ per callback. The shell provides this read-only API as `InspectorKey`.
 - `kerneltest.New(t, factories...)` starts a Strict kernel with an in-memory store. The
   test goroutine is the UI thread; posts and background work queue until the test runs
   them. `Flush` drains both; `RunWork(i)`, `RunPosts` and `WaitPosts(n)` let a test
-  choose the order in which work finishes and results arrive.
-- `kerneltest.Start(t, kerneltest.Config{Store, Lenient, Restart, Now}, factories...)`
+  choose the order in which work finishes and results arrive. `Frames` counts the
+  frames the kernel asked for, so a test can check that a quiet post asked for one
+  only when what it changed is on show.
+- `kerneltest.Start(t, kerneltest.Config{Store, Lenient, Restart, Now, QuietRedraw}, factories...)`
   shares a store across restarts, fails plugins on panic instead of re-panicking, and
-  restarts them by a policy and clock of the test's.
+  restarts them by a policy and clock of the test's. `QuietRedraw` is the kernel's;
+  the harness leaves it off unless a test sets it.
 - `kerneltest.Keep(&p, func() *Plugin { return &Plugin{…} })` is a factory that keeps
   the plugin set up now in `p`, so a test looks into the current instance, also after
   a restart. A test double that records what plugins did, such as `kittest.Host`,

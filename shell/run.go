@@ -86,7 +86,10 @@ func Run(app App, plugins ...kernel.Factory) {
 			Content:     ui.View(func(c *ui.Context) { s.View(c) }),
 		})
 		var err error
-		s, err = New(Options{Name: app.Name, Menus: app.Menus, Post: win.Update, Store: store, Strict: env("STRICT") == "1",
+		// The app is ready here, so WhenReady runs a closure on the main
+		// thread without drawing a frame; the kernel asks for frames itself.
+		s, err = New(Options{Name: app.Name, Menus: app.Menus, Post: mygo.App.WhenReady, Invalidate: win.Invalidate,
+			Store: store, Strict: env("STRICT") == "1",
 			SetTitle: win.SetTitle, SetMenu: mygo.App.SetMenu, SetTheme: mygo.Theme.SetSource,
 			SetVibrancy: func(on bool) {
 				if on {

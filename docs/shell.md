@@ -30,7 +30,12 @@ shell.Run(shell.App{
 - `Menus` are the menus between the app menu and Window, in order.
 
 `shell.New` builds the same shell without a window, for tests and benchmarks: its
-`Options` take the Name and Menus, and the kernel's Post, Store and Strict.
+`Options` take the Name and Menus, and the kernel's Post, Invalidate, Store and
+Strict. `Run` posts with `mygo.App.WhenReady`, which runs a closure on the main
+thread without drawing a frame, and gives the kernel the window's `Invalidate`, so
+the kernel decides which posts draw a frame (see the kernel note's Threading).
+Commands chosen from the menu bar or a system-wide shortcut run in a post that
+draws one.
 
 The shell gives the kernel a fixed restart policy: a plugin that fails at run time
 is set up again, up to 3 times a minute. A toast says "<Title> restarted after an

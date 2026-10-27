@@ -106,10 +106,20 @@ var (
 )
 
 type Options struct {
-	Post       func(func()) // required: schedule on the UI thread
-	Background func(func()) // optional: run off the UI thread; default is a goroutine
-	Store      Store        // required
-	Strict     bool         // re-panic instead of failing the plugin
+	Post func(func()) // required: schedule on the UI thread
+	// Invalidate, when set, asks the host for a frame and is safe on any
+	// goroutine; Post then only schedules. The kernel asks for a frame after
+	// each closure it posts, except those of Scope.PostQuiet. Without it,
+	// Post is taken to draw a frame after each closure, as a window's Update
+	// does.
+	Invalidate func()
+	// QuietRedraw bounds how long what the window shows can lag behind
+	// PostQuiet closures that asked for no frame: a frame comes within it
+	// after one. 250 ms when zero; never when negative.
+	QuietRedraw time.Duration
+	Background  func(func()) // optional: run off the UI thread; default is a goroutine
+	Store       Store        // required
+	Strict      bool         // re-panic instead of failing the plugin
 	// Restart brings back a plugin that failed after its Setup; the zero
 	// value never does.
 	Restart Restart
@@ -190,6 +200,12 @@ type Kernel struct {
 	dirty   map[valueKey][]byte
 	deleted map[valueKey]bool
 	saving  *pendingSave
+
+	// asked tells that a frame was asked for while a quiet closure ran;
+	// lagging that the frame QuietRedraw promises is due, lagTimer when.
+	asked    bool
+	lagging  atomic.Bool
+	lagTimer *time.Timer
 
 	workers sync.WaitGroup
 	started bool
@@ -395,6 +411,9 @@ func (k *Kernel) Close(ctx context.Context) error {
 	}
 	k.root.dispose()
 	k.closed = true
+	if k.lagTimer != nil {
+		k.lagTimer.Stop()
+	}
 	wait := make(chan struct{})
 	go func() { k.workers.Wait(); close(wait) }()
 	var errs []error
@@ -604,7 +623,7 @@ func (k *Kernel) fail(p *plugin, err error) {
 	k.dispose(p, Failed, err)
 	if p.state == Failed && k.mayRestart(p) {
 		p.restarting = true
-		k.opts.Post(func() { k.restart(p) })
+		k.post(func() { k.restart(p) })
 	}
 	k.changed()
 }
@@ -666,4 +685,49 @@ func recovered(fn func()) (err error) {
 
 func declares(keys []Named, name string) bool {
 	return slices.ContainsFunc(keys, func(n Named) bool { return n.Name() == name })
+}
+
+// post schedules fn on the UI thread and asks for a frame after it.
+func (k *Kernel) post(fn func()) {
+	if k.opts.Invalidate == nil {
+		k.opts.Post(fn)
+		return
+	}
+	k.opts.Post(func() { fn(); k.invalidate() })
+}
+
+// postQuiet schedules fn on the UI thread without asking for a frame; fn
+// asks for one with invalidate when what the window shows changed. One that
+// does not gets a frame within QuietRedraw anyway.
+func (k *Kernel) postQuiet(fn func()) {
+	k.opts.Post(func() {
+		k.asked = false
+		fn()
+		if !k.asked {
+			k.redrawSoon()
+		}
+	})
+}
+
+func (k *Kernel) invalidate() {
+	k.asked = true
+	if k.opts.Invalidate != nil {
+		k.opts.Invalidate()
+	}
+}
+
+// redrawSoon asks for a frame within QuietRedraw, unless one is already due.
+func (k *Kernel) redrawSoon() {
+	d := k.opts.QuietRedraw
+	if d == 0 {
+		d = 250 * time.Millisecond
+	}
+	if d < 0 || k.opts.Invalidate == nil || k.closed || !k.lagging.CompareAndSwap(false, true) {
+		return
+	}
+	invalidate := k.opts.Invalidate
+	k.lagTimer = time.AfterFunc(d, func() {
+		k.lagging.Store(false)
+		invalidate()
+	})
 }

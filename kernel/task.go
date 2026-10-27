@@ -30,7 +30,7 @@ func Go[T any](o Owner, t *Task, work func(context.Context) (T, error), apply fu
 		var err error
 		perr := recovered(func() { v, err = work(ctx) })
 		done()
-		k.opts.Post(func() {
+		k.post(func() {
 			cancel()
 			latest := t.gen == gen
 			if latest {

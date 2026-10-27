@@ -3,11 +3,13 @@
 package kerneltest
 
 import (
+	"cmp"
 	"context"
 	"maps"
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,6 +22,9 @@ type Config struct {
 	// Restart and Now are the kernel's; Restart needs Lenient.
 	Restart kernel.Restart
 	Now     func() time.Time
+	// QuietRedraw is the kernel's; zero means never, so that a test sees
+	// only the frames plugins ask for.
+	QuietRedraw time.Duration
 }
 
 // Harness is a started kernel. The test goroutine is its UI thread. Posted
@@ -32,6 +37,7 @@ type Harness struct {
 	mu     sync.Mutex
 	posts  []func()
 	work   []func()
+	frames atomic.Int64
 	closed bool
 }
 
@@ -57,12 +63,14 @@ func Start(t testing.TB, cfg Config, plugins ...kernel.Factory) *Harness {
 		h.Store = NewStore()
 	}
 	h.Kernel = kernel.New(kernel.Options{
-		Post:       func(fn func()) { h.mu.Lock(); h.posts = append(h.posts, fn); h.mu.Unlock() },
-		Background: func(fn func()) { h.mu.Lock(); h.work = append(h.work, fn); h.mu.Unlock() },
-		Store:      h.Store,
-		Strict:     !cfg.Lenient,
-		Restart:    cfg.Restart,
-		Now:        cfg.Now,
+		Post:        func(fn func()) { h.mu.Lock(); h.posts = append(h.posts, fn); h.mu.Unlock() },
+		Invalidate:  func() { h.frames.Add(1) },
+		QuietRedraw: cmp.Or(cfg.QuietRedraw, -1),
+		Background:  func(fn func()) { h.mu.Lock(); h.work = append(h.work, fn); h.mu.Unlock() },
+		Store:       h.Store,
+		Strict:      !cfg.Lenient,
+		Restart:     cfg.Restart,
+		Now:         cfg.Now,
 	})
 	if err := h.Install(plugins...); err != nil {
 		t.Fatal(err)
@@ -73,6 +81,10 @@ func Start(t testing.TB, cfg Config, plugins ...kernel.Factory) *Harness {
 	t.Cleanup(h.Close)
 	return h
 }
+
+// Frames reports how many frames the kernel has asked for so far: one after
+// each posted closure but those of PostQuiet, and one for each Invalidate.
+func (h *Harness) Frames() int { return int(h.frames.Load()) }
 
 // Work reports how many background jobs are queued.
 func (h *Harness) Work() int { h.mu.Lock(); defer h.mu.Unlock(); return len(h.work) }
