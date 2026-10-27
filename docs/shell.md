@@ -98,8 +98,8 @@ packaged app (`mygo dev` or `mygo build`); under `go run` nothing is shown.
 
 `native.PaletteFor` is where every color comes from: the theme's colors, the strip,
 panel and drawer, tints for hover and the active tab, the project colors, and the
-inks for marks drawn on pictures, which stay the same in both themes because they
-become the picture's pixels. An
+inks and the redaction block for marks drawn on pictures, which stay the same in both
+themes because they become the picture's pixels. An
 app's test calls `kittest.ColorsStayInThePalette` on its tree, which fails on a
 `ui.Hex` or `ui.RGBA` outside the kit's `native/palette.go`.
 

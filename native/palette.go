@@ -30,17 +30,19 @@ type Palette struct {
 	// take them.
 	Projects [5]ProjectColor
 	// Inks are the colors of marks drawn on a screenshot, the first the
-	// default. They become the image's own pixels, so they are the same in
-	// both themes.
-	Inks [5]Ink
+	// default, and Redaction the block that hides part of one. They become
+	// the image's own pixels, so they are the same in both themes.
+	Inks      [5]Ink
+	Redaction ui.Color
 }
 
 // Ink is one color of a mark on a picture: Mark for its lines and badge,
-// On for the badge's number, and Halo, a thin edge that keeps the mark
-// readable over light and dark content.
+// On for the badge's number, Halo, a thin edge that keeps the mark
+// readable over light and dark content, and Wash, a highlight the content
+// shows through.
 type Ink struct {
-	Name           string
-	Mark, On, Halo ui.Color
+	Name                 string
+	Mark, On, Halo, Wash ui.Color
 }
 
 // ProjectColor is one project's color: Mark for dots and lines, Tint behind
@@ -59,12 +61,15 @@ var (
 // Inks: red, orange, yellow, green and blue, saturated enough to stand out
 // from an interface, with a dark halo.
 var inks = [5]Ink{
-	{"Red", ui.Hex("#e5383b"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
-	{"Orange", ui.Hex("#f97316"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
-	{"Yellow", ui.Hex("#facc15"), ui.RGB(0, 0, 0), ui.RGBA(0, 0, 0, .55)},
-	{"Green", ui.Hex("#16a34a"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
-	{"Blue", ui.Hex("#2563eb"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45)},
+	{"Red", ui.Hex("#e5383b"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45), ui.Hex("#e5383b").Alpha(.3)},
+	{"Orange", ui.Hex("#f97316"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45), ui.Hex("#f97316").Alpha(.3)},
+	{"Yellow", ui.Hex("#facc15"), ui.RGB(0, 0, 0), ui.RGBA(0, 0, 0, .55), ui.Hex("#facc15").Alpha(.4)},
+	{"Green", ui.Hex("#16a34a"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45), ui.Hex("#16a34a").Alpha(.3)},
+	{"Blue", ui.Hex("#2563eb"), ui.RGB(255, 255, 255), ui.RGBA(0, 0, 0, .45), ui.Hex("#2563eb").Alpha(.3)},
 }
+
+// redaction is opaque, so what it covers leaves the image.
+var redaction = ui.RGB(24, 24, 27)
 
 // PaletteFor maps the app's semantic colors onto Onevra's warm palettes.
 // The tabs sit on the strip, the page in a panel on the surface, and
@@ -181,5 +186,6 @@ func PaletteOf(t *ui.Theme) Palette {
 		DiffDelBg: t.Danger.Alpha(0.12),
 		Projects:  projects,
 		Inks:      inks,
+		Redaction: redaction,
 	}
 }
