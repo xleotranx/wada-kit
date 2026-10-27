@@ -122,7 +122,8 @@ dropped, including failure reports from `Spawn` workers that panic after disposa
   what it emits, calls `Scope.Invalidate` when what the window shows changed. A
   quiet closure after which nothing did still gets a frame within
   `Options.QuietRedraw` (250 ms by default), so a missed `Invalidate` shows late,
-  not never. Without `Options.Invalidate`, `Post` is taken to draw a frame itself.
+  not never. `Scope.FrameDue` tells it that a frame already asked for (as with the
+  window's `After`) will show the change, which then needs neither. Without `Options.Invalidate`, `Post` is taken to draw a frame itself.
 - A plugin starts every goroutine with `Spawn` or `Go`, never a `go` statement, which
   the kernel can neither recover nor wait for. A worker (a `Spawn` body or `Go` work,
   of any plugin) may `Spawn` a goroutine of its own; `Spawn` reports false, starting

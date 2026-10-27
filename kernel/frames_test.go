@@ -101,3 +101,16 @@ func TestQuietPostWithoutAFrameHookStillRuns(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestFrameDueAsksForNoFrameAndNoFallback(t *testing.T) {
+	p := plug("a", nil)
+	h := kerneltest.Start(t, kerneltest.Config{QuietRedraw: time.Millisecond}, p.New)
+	h.Flush()
+	before := h.Frames()
+	p.ctx.PostQuiet(func() { p.ctx.FrameDue() })
+	h.RunPosts()
+	time.Sleep(20 * time.Millisecond)
+	if h.Frames() != before {
+		t.Fatalf("frames %d → %d after FrameDue, want none", before, h.Frames())
+	}
+}

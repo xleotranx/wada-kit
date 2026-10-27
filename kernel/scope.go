@@ -160,6 +160,11 @@ func (s *Scope) PostQuiet(fn func()) {
 // made in a PostQuiet closure. Call it on the UI thread.
 func (s *Scope) Invalidate() { s.s.k.invalidate() }
 
+// FrameDue tells the kernel that a frame already asked for, as with the
+// window's After, will show what a PostQuiet closure changed: it needs
+// neither Invalidate nor the QuietRedraw frame. Call it on the UI thread.
+func (s *Scope) FrameDue() { s.s.k.asked = true }
+
 // Spawn runs a long-lived worker bound to Lifetime and reports whether it
 // started: it does not once the scope is disposed. Close waits for it to
 // return. A panic in fn fails the owning plugin. Call it on the UI thread or
