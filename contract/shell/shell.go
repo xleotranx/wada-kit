@@ -52,10 +52,6 @@ var (
 	PageChanged = kernel.NewTopic[string]("shell.page-changed")
 )
 
-// SearchCommand is the ID of the kernel.Commands entry that opens the app's
-// search. The tab strip's search button runs it when a plugin contributes it.
-const SearchCommand = "palette.open"
-
 // Clipboard is what a paste can attach: local file paths, or an image.
 type Clipboard struct {
 	Files []string
