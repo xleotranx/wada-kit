@@ -168,12 +168,14 @@ type stage struct {
 	s     *scope
 	order int
 	seq   uint64
-	fn    func(any) (any, error)
+	fn    func(any) (any, func(), error)
 }
 
 // Transform adds fn to the chain, ordered by order then registration, until o
-// is disposed.
-func Transform[T any](o Owner, p Pipeline[T], order int, fn func(T) (T, error)) {
+// is disposed. fn prepares the value and leaves its plugin's state alone: what
+// it would change once the value is used it returns as commit, or nil, which
+// runs only if the whole chain succeeds and its caller commits.
+func Transform[T any](o Owner, p Pipeline[T], order int, fn func(T) (T, func(), error)) {
 	s := o.owner()
 	if !s.alive {
 		return
@@ -184,7 +186,7 @@ func Transform[T any](o Owner, p Pipeline[T], order int, fn func(T) (T, error)) 
 		s.k.pipes[p.name] = pl
 	}
 	pl.seq++
-	st := &stage{s: s, order: order, seq: pl.seq, fn: func(v any) (any, error) { return fn(v.(T)) }}
+	st := &stage{s: s, order: order, seq: pl.seq, fn: func(v any) (any, func(), error) { return fn(v.(T)) }}
 	stages := append(slices.Clone(pl.stages), st)
 	slices.SortStableFunc(stages, func(a, b *stage) int {
 		if a.order != b.order {
@@ -202,33 +204,53 @@ func Transform[T any](o Owner, p Pipeline[T], order int, fn func(T) (T, error)) 
 }
 
 // Run passes v through every transform. The first error stops the chain and
-// is returned as a *PluginError. A panicking transform fails its plugin and is
-// skipped.
-func Run[T any](o Owner, p Pipeline[T], v T) (T, error) {
+// is returned as a *PluginError; so is a panic, which also fails its plugin.
+// On success Run returns commit, which applies what the transforms set aside
+// once the caller uses the result; a caller that drops the result doesn't call
+// it. Each commit runs at most once, for a plugin that is still active, and a
+// panicking one fails only its plugin.
+func Run[T any](o Owner, p Pipeline[T], v T) (T, func(), error) {
 	k := o.owner().k
-	pl := k.pipes[p.name]
-	if pl == nil {
-		return v, nil
+	type pending struct {
+		s  *scope
+		fn func()
 	}
-	cur := any(v)
-	for _, st := range pl.stages {
-		if !st.s.alive {
-			continue
-		}
-		var next any
-		var err error
-		done := false
-		k.call(st.s.plugin, func() { next, err = st.fn(cur); done = true })
-		if err != nil {
-			var zero T
-			return zero, &PluginError{Plugin: st.s.plugin.id(), Err: err}
-		}
-		if done {
+	var commits []pending
+	if pl := k.pipes[p.name]; pl != nil {
+		cur := any(v)
+		for _, st := range pl.stages {
+			if !st.s.alive {
+				continue
+			}
+			var next any
+			var done func()
+			var err error
+			if perr := k.try(st.s.plugin, func() { next, done, err = st.fn(cur) }); perr != nil {
+				err = perr
+			}
+			if err != nil {
+				var zero T
+				return zero, nil, &PluginError{Plugin: st.s.plugin.id(), Err: err}
+			}
 			cur = next
+			if done != nil {
+				commits = append(commits, pending{st.s, done})
+			}
 		}
+		v, _ = cur.(T)
 	}
-	out, _ := cur.(T)
-	return out, nil
+	committed := false
+	return v, func() {
+		if committed {
+			return
+		}
+		committed = true
+		for _, c := range commits {
+			if c.s.alive {
+				k.call(c.s.plugin, c.fn)
+			}
+		}
+	}, nil
 }
 
 // ---- Extension points

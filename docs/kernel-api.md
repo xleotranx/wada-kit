@@ -40,7 +40,7 @@ Import rules, enforced by depguard in the kit's and the app's `.golangci.yml`:
 | `Scope` | a lifetime whose registrations, workers and posts end together | any number (`NewScope`) |
 | `Key[T]` | a service: `Provide`, `Require`, `Use` | exactly one provider |
 | `Topic[T]` | an event: `On`, `Emit` | many listeners |
-| `Pipeline[T]` | ordered transforms over a value: `Transform`, `Run` | many transforms |
+| `Pipeline[T]` | ordered transforms over a value: `Transform`, `Run`; each prepares the value and returns what it would change as a commit, which `Run`'s caller applies once the whole chain succeeds | many transforms |
 | `Point[T]` | a collection of entries: `Contribute`, `Items`, `Invoke` | many entries |
 | `Commands` | the kernel's own `Point[Command]`: title, menu, accelerators, a system-wide shortcut, run | many |
 | `Task` | a replaceable background job (`Go`); stale results are dropped | — |
@@ -160,7 +160,9 @@ dropped, including failure reports from `Spawn` workers that panic after disposa
 - A Failed plugin can be enabled again from Settings → Plugins.
 - Panics in host callbacks, registered on the `Kernel` itself, are app bugs and are
   not recovered.
-- `Run` returns a transform's error as a `*PluginError` naming the plugin.
+- `Run` returns a transform's error, or its panic, as a `*PluginError` naming the plugin
+  and stops the chain; nothing is committed, so a failing transform is never skipped.
+  A panicking commit fails only its plugin.
 
 ## Naming
 

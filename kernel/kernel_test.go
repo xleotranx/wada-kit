@@ -332,9 +332,12 @@ func TestCallbackPanicsFailOnlyTheirPlugin(t *testing.T) {
 			kernel.Emit(h, ping, "hello")
 		},
 		"transform": func(h *kerneltest.Harness) {
-			kernel.Transform(bad.ctx, outgoing, 0, func(string) (string, error) { panic("transform") })
-			if v, err := kernel.Run(h, outgoing, "x"); v != "x" || err != nil {
-				t.Errorf("run after panicking transform = %q, %v", v, err)
+			kernel.Transform(bad.ctx, outgoing, 0, func(string) (string, func(), error) { panic("transform") })
+			_, commit, err := kernel.Run(h, outgoing, "x")
+			var pe *kernel.PluginError
+			var panicked *kernel.PanicError
+			if !errors.As(err, &pe) || pe.Plugin != "bad" || !errors.As(err, &panicked) || commit != nil {
+				t.Errorf("run with a panicking transform = %v", err)
 			}
 		},
 		"command": func(h *kerneltest.Harness) {
@@ -434,32 +437,47 @@ func TestEvents(t *testing.T) {
 }
 
 func TestPipelineOrderAndRejection(t *testing.T) {
+	var committed []string
+	commit := func(name string) func() { return func() { committed = append(committed, name) } }
 	a := plug("a", func(c *kernel.Context) error {
-		kernel.Transform(c, outgoing, 20, func(s string) (string, error) { return s + "-a20", nil })
-		kernel.Transform(c, outgoing, 10, func(s string) (string, error) { return s + "-a10", nil })
+		kernel.Transform(c, outgoing, 20, func(s string) (string, func(), error) { return s + "-a20", commit("a20"), nil })
+		kernel.Transform(c, outgoing, 10, func(s string) (string, func(), error) { return s + "-a10", commit("a10"), nil })
 		return nil
 	})
 	b := plug("b", func(c *kernel.Context) error {
-		kernel.Transform(c, outgoing, 10, func(s string) (string, error) {
+		kernel.Transform(c, outgoing, 10, func(s string) (string, func(), error) {
 			if s == "reject-a10" {
-				return "", errors.New("too long")
+				return "", nil, errors.New("too long")
 			}
-			return s + "-b10", nil
+			return s + "-b10", nil, nil
 		})
 		return nil
 	})
 	h := kerneltest.New(t, a.New, b.New)
-	if v, err := kernel.Run(h, outgoing, "x"); err != nil || v != "x-a10-b10-a20" {
-		t.Fatalf("run = %q, %v", v, err)
+	v, done, err := kernel.Run(h, outgoing, "x")
+	if err != nil || v != "x-a10-b10-a20" || len(committed) != 0 {
+		t.Fatalf("run = %q, %v, committed %q", v, err, committed)
 	}
-	_, err := kernel.Run(h, outgoing, "reject")
+	done()
+	done()
+	if !slices.Equal(committed, []string{"a10", "a20"}) {
+		t.Fatalf("committed %q", committed)
+	}
+	committed = nil
+	_, done, err = kernel.Run(h, outgoing, "reject")
 	var pe *kernel.PluginError
-	if !errors.As(err, &pe) || pe.Plugin != "b" {
+	if !errors.As(err, &pe) || pe.Plugin != "b" || done != nil {
 		t.Fatalf("rejection = %v", err)
 	}
 	h.Disable("b")
-	if v, _ := kernel.Run(h, outgoing, "x"); v != "x-a10-a20" {
+	if v, _, _ := kernel.Run(h, outgoing, "x"); v != "x-a10-a20" {
 		t.Fatalf("after disable = %q", v)
+	}
+	// A plugin disposed between the run and the commit commits nothing.
+	_, done, _ = kernel.Run(h, outgoing, "x")
+	h.Disable("a")
+	if done(); len(committed) != 0 {
+		t.Fatalf("disposed plugin committed %q", committed)
 	}
 	closeClean(t, h)
 }

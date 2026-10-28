@@ -33,7 +33,7 @@ func TestDiagnosticsDescribeDependenciesAndLiveRegistrations(t *testing.T) {
 	h := kerneltest.New(t, provider.New, dependent.New)
 	scope := dependent.ctx.NewScope()
 	kernel.On(scope, ping, func(string) {})
-	kernel.Transform(scope, outgoing, 0, func(s string) (string, error) { return s, nil })
+	kernel.Transform(scope, outgoing, 0, func(s string) (string, func(), error) { return s, nil, nil })
 	if err := kernel.Contribute(scope, sidebar, "consumer.item", 0, "item"); err != nil {
 		t.Fatal(err)
 	}

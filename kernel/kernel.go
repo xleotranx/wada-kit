@@ -580,18 +580,22 @@ func (k *Kernel) dependent(p *plugin) *plugin {
 // call runs fn on behalf of p, failing p if fn panics, and times it. Host
 // callbacks (p nil), Strict kernels and a plugin's own Setup let the panic
 // through; setup then fails the plugin.
-func (k *Kernel) call(p *plugin, fn func()) {
+func (k *Kernel) call(p *plugin, fn func()) { _ = k.try(p, fn) }
+
+// try is call that also returns the panic that failed p.
+func (k *Kernel) try(p *plugin, fn func()) (err error) {
 	if p == nil {
 		fn()
-		return
+		return nil
 	}
 	k.timed(p, func() {
 		if k.opts.Strict || p.settingUp {
 			fn()
-		} else if err := recovered(fn); err != nil {
+		} else if err = recovered(fn); err != nil {
 			k.fail(p, err)
 		}
 	})
+	return err
 }
 
 // timed runs fn and charges p for the time it took, less what callbacks of
