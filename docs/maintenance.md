@@ -45,21 +45,16 @@ into a temporary external module and tests it against the candidate kit through
 a temporary replacement. This checks external imports and exported APIs.
 
 For a published release, `scripts/check-consumer.sh v0.1.0` instead downloads and
-tests that tag with no replacement. Private repository authentication and
-`GOPRIVATE` must be configured as described in the README.
+tests that tag with no replacement. The public module needs no GitHub credentials
+or `GOPRIVATE` configuration.
 
-## Private CI consumers
+## CI consumers
 
-Each consuming repository needs read access to this private repository in its own
-CI; its default `GITHUB_TOKEN` cannot read another private repository. Wada uses a
-read-only deploy key registered here, with the private half in Wada's
-`WADA_KIT_SSH_KEY` Actions secret. It configures `GOPRIVATE` and an SSH URL rewrite
-for this repository only. Host keys come from GitHub's HTTPS metadata endpoint.
-Never use a personal account's broad token as the consumer build credential.
-
-A new app needs its own read-only deploy key and its own secret. To rotate one,
-register a new public key here, replace that app's secret, verify its CI, then
-revoke the old deploy key. Do not share one deploy key between consuming apps.
+The kit is public. Apps and CI fetch tagged versions through normal Go module
+downloads; no cross-repository token, deploy key, SSH URL rewrite, or `GOPRIVATE`
+setting is required. Each app owns its checks and pinned kit version. Keep
+`GOWORK=off` in release checks so a local checkout cannot hide an unpublished
+change.
 
 ## Release procedure
 

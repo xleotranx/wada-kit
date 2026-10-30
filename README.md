@@ -31,16 +31,8 @@ shell.Run(shell.App{Name: "Notes", Folder: "notes", Env: "NOTES", Width: 900, He
 Requires the Go version in `go.mod`. The desktop packages use MyGo and Onevra;
 `kernel` uses only the standard library. Native checks run on macOS.
 
-The repository is private. Authenticate Git with a GitHub account that can read
-`xleotranx/wada-kit`, and include `github.com/xleotranx/wada-kit` in `GOPRIVATE`
-so Go fetches it directly without the public proxy or checksum database. For a new
-setup with no existing private-module patterns:
-
-```sh
-gh auth login
-gh auth setup-git
-go env -w GOPRIVATE=github.com/xleotranx/wada-kit
-```
+The repository is public. Normal Go module downloads need no GitHub credentials,
+deploy keys, or `GOPRIVATE` configuration.
 
 Add the kit to your app:
 
