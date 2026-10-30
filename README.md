@@ -4,7 +4,7 @@ The core and window of a native MyGo desktop app, without the app: a plugin kern
 a window shell (title strip, rounded panel, clear or frosted backdrop, light and dark
 appearance, menus, shortcuts, a SQLite settings store), the palette every pane
 paints with, a settings page and plugin diagnostics. An app adds its own plugins and
-contracts on top. Wada is built on it, beside it in this repository.
+contracts on top. Apps consume tagged releases from this independent repository.
 
 | Package | What it is |
 | --- | --- |
@@ -28,17 +28,50 @@ shell.Run(shell.App{Name: "Notes", Folder: "notes", Env: "NOTES", Width: 900, He
 	newNotes, inspector.New, settings.New)
 ```
 
-`go run ./examples/notes` runs the example. An app beside the kit requires
-`github.com/xleotranx/wada-kit` and replaces it with the folder, as Wada does:
+Requires the Go version in `go.mod`. The desktop packages use MyGo and Onevra;
+`kernel` uses only the standard library. Native checks run on macOS.
 
-```
-require github.com/xleotranx/wada-kit v0.0.0
-replace github.com/xleotranx/wada-kit => ./wada-kit
+The repository is private. Authenticate Git with a GitHub account that can read
+`xleotranx/wada-kit`, and include `github.com/xleotranx/wada-kit` in `GOPRIVATE`
+so Go fetches it directly without the public proxy or checksum database. For a new
+setup with no existing private-module patterns:
+
+```sh
+gh auth login
+gh auth setup-git
+go env -w GOPRIVATE=github.com/xleotranx/wada-kit
 ```
 
-In its own repository, `git subtree split --prefix wada-kit` carries this folder
-with its history; an app then drops the replace and requires a tagged version. The
-import path stays the same.
+Add the kit to your app:
+
+```sh
+go get github.com/xleotranx/wada-kit@v0.1.0
+```
+
+An app owns its `main.go`, plugins, contracts, packaging configuration, bundle
+identifier and assets. Give each app its own `shell.App.Folder` and `Env` so data
+and environment variables are separate. Use `examples/notes` as a small reference;
+`go run ./examples/notes` runs it from a kit checkout.
+
+The supported dependency combination is pinned in `go.mod`. Apps that also depend
+on MyGo or Onevra should test the versions Go selects in their own module graph.
+The shell opens one main window; the palette's clear-window setting is process-wide.
+
+## Develop with an app
+
+Keep normal app dependencies on tagged versions. For coordinated local changes,
+create an uncommitted workspace in a directory containing both repositories:
+
+```sh
+go work init ./wada-kit ./my-app
+```
+
+Run app tests normally to use the local kit. Run `GOWORK=off make check` in each
+repository to validate its declared dependencies. Do not commit a local `replace`
+or workspace as an app's release dependency.
+
+[Maintenance and releases](docs/maintenance.md) describes ownership, compatibility,
+private CI access, and the release checks. [Changelog](CHANGELOG.md) records releases.
 
 ## Check
 
