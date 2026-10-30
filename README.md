@@ -37,7 +37,7 @@ deploy keys, or `GOPRIVATE` configuration.
 Add the kit to your app:
 
 ```sh
-go get github.com/xleotranx/wada-kit@v0.1.0
+go get github.com/xleotranx/wada-kit@v0.1.1
 ```
 
 An app owns its `main.go`, plugins, contracts, packaging configuration, bundle
@@ -69,3 +69,7 @@ private CI access, and the release checks. [Changelog](CHANGELOG.md) records rel
 
 `make check`: MyGo lifetime vet, pinned lint (the import boundaries; nothing here
 imports an app), race tests and no-cgo tests.
+
+## License
+
+[MIT](LICENSE). Third-party dependencies retain their own licenses.
