@@ -22,6 +22,11 @@ During v0, patch releases preserve the public API; breaking changes use a minor
 version bump, explain consumer changes in the changelog, and are tested against
 known consumers. Release tags are immutable.
 
+The current unreleased v0.2 candidate changes lifecycle behavior and requires a
+minor release. [Upgrading to v0.2](upgrading-v0.2.md) records the exported API diff,
+consumer actions, standalone validation and the app checks still needed before
+publication. Candidate review does not replace known-consumer release validation.
+
 A v1 release requires a reviewed public API and evidence from Wada and another
 independent app. After v1, fixes use patch versions, compatible additions use
 minor versions, and breaking changes require a new major version and the Go module
@@ -67,7 +72,7 @@ change.
 4. Commit the release changes, push `main`, and wait for its CI to pass.
 5. Create an annotated version tag and push that tag. Tags use `v0.1.0` format at
    the repository root. Create a GitHub release with the matching changelog notes.
-6. Run `scripts/check-consumer.sh <tag>` to verify private module download and
+6. Run `scripts/check-consumer.sh <tag>` to verify public module download and
    external use without a local replacement.
 7. Upgrade each app's `go.mod` and `go.sum` in its own change; run its full gate
    with `GOWORK=off` before merging. CI must use the tagged module too.

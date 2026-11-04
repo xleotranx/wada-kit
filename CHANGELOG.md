@@ -42,9 +42,14 @@
 - Disposed callers cannot start events or pipelines; pending pipeline commits also
   expire with the caller's scope. Disposal during a stage aborts the run, and
   disposal during a commit prevents later commits.
+- Direct disposal of an active plugin root now stops that activation as failed
+  and blocks its required dependents, instead of withdrawing services while
+  leaving consumers active. This does not schedule automatic restart; use child
+  scopes for local work and Kernel.Enable/Disable for normal plugin management.
 
-Settings formats and dependencies are unchanged. See `docs/shell.md` for upgrade
-instructions; app migrations and release tagging are separate work.
+Settings formats and dependencies are unchanged. See the
+[v0.2 compatibility and upgrade guide](docs/upgrading-v0.2.md). App candidate
+validation, migrations and release tagging are separate work.
 
 ## v0.1.2 — 2026-11-04
 

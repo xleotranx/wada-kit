@@ -52,3 +52,19 @@ Lifetime verification passed: lifetime vet, lint, race/no-cgo tests, build and
 external Notes consumer. Reproduction tests failed before the fixes; removing the
 commit caller-lifetime guard also failed its regression assertion. Optional and
 required provider recovery and old task/post isolation pass without API additions.
+
+## v0.2 compatibility review
+
+- [x] Compare exported APIs against v0.1.2 and review source/behavior/persistence
+  compatibility and the evidence from existing tests.
+- [x] Reproduce and fix active root-scope disposal leaving dependents alive;
+  verify explicit recovery, stale-root isolation, locked plugins and child scopes.
+- [x] Write the v0.2 upgrade guide and review outcome, link the guide from existing
+  docs, run the standalone checks, and commit. Leave app migrations and tagging for later.
+
+Review verification passed: exported-type comparison of all nine importable
+packages against v0.1.2 found only Manifest.Restart added. Dependency and schema
+diffs are empty. Root-disposal regressions reproduced before fixes; an inverted
+scope identity guard failed the regression test. Full lifetime vet, lint,
+race/no-cgo suites, build and external Notes consumer pass. Local documentation
+links resolve. Known-app candidate/native smoke checks remain release work.

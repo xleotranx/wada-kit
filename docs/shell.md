@@ -48,6 +48,8 @@ it as Restarting or Stopped with the error. A stopped plugin can be enabled agai
 
 ### Upgrade from v0.1
 
+See the [v0.2 upgrade guide](upgrading-v0.2.md) for the full API and behavior review.
+
 This is a next-minor behavior change: v0.1 shells implicitly restarted every plugin
 up to three times per minute. Review each plugin's Setup, cleanup, workers and
 external side effects before opting in. Dependents are also set up again when a

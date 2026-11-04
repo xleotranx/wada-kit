@@ -2,6 +2,7 @@ package kernel
 
 import (
 	"context"
+	"errors"
 	"slices"
 )
 
@@ -136,7 +137,21 @@ func (s *Scope) NewScope() *Scope {
 }
 
 // Dispose cancels Lifetime, then undoes every registration. Idempotent.
-func (s *Scope) Dispose() { s.s.dispose() }
+// Dispose child scopes for local work. Disposing an active plugin's root stops
+// that activation as Failed and blocks its dependents, without automatic restart;
+// use Kernel.Disable for normal plugin management. During Setup it fails Setup.
+func (s *Scope) Dispose() {
+	sc := s.s
+	if p := sc.plugin; p != nil && p.ctx != nil && p.ctx.s == sc && !p.settingUp {
+		if !sc.alive || p.disposing {
+			return
+		}
+		sc.k.dispose(p, Failed, errors.New("kernel: active plugin context disposed"))
+		sc.k.changed()
+		return
+	}
+	sc.dispose()
+}
 
 // Post runs fn on the UI thread if the scope is still alive then, and draws a
 // frame after it. Safe on any goroutine.

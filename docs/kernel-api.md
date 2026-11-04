@@ -137,6 +137,12 @@ that subscribes and unsubscribes through its life does not grow.
 Disposing a scope marks it dead, cancels its `Lifetime`, disposes child scopes and
 runs its disposers, newest first. Afterwards its `Post` closures and task results are
 dropped, including failure reports from `Spawn` workers that panic after disposal.
+Use child scopes for local work and Kernel.Enable/Disable for plugin management.
+Direct disposal of an active plugin root, including a locked plugin, stops that
+activation as Failed and disposes its required dependents first. It does not
+schedule an automatic restart; explicit Enable can retry. Repeated disposal of an
+old root cannot stop a replacement activation. Root disposal during Setup fails
+that Setup instead of activating a dead context.
 The same protection applies to task results and task panics from an older plugin
 activation, even when a Task is reused by a newer one. A disposed owner cannot
 start an Emit or Run: Emit does nothing; Run returns an error and no commit.

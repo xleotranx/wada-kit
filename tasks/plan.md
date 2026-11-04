@@ -76,3 +76,16 @@ Keep read-only Use/Items semantics and public signatures. Optional consumers mus
 re-query Use rather than cache a provider. Preserve required-service availability
 during dependent cleanup. Cover child scopes and replacement activations, document
 the resulting behavior, and run the standalone gate/build/Notes consumer check.
+
+## v0.2 API and compatibility review
+
+Compare all importable package APIs with v0.1.2, review lifecycle behavior and
+schema/dependency changes, and write a dedicated consumer upgrade guide. Keep
+v0.2 unreleased until later app candidate checks and the normal release procedure.
+
+Close the root-scope disposal gap found during review: direct disposal of an
+active plugin root must go through dependent-first kernel teardown, mark the
+activation Failed and prevent implicit reactivation. Explicit Enable can retry;
+stale scopes and repeated disposal cannot stop a replacement activation. Child
+scope disposal remains local, and disposal during Setup remains a setup failure.
+Verify with regression tests before documenting the reviewed result.
