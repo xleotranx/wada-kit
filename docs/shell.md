@@ -48,9 +48,9 @@ it as Restarting or Stopped with the error. A stopped plugin can be enabled agai
 
 ### Upgrade from v0.1
 
-See the [v0.2 upgrade guide](upgrading-v0.2.md) for the full API and behavior review.
+See the [v0.2 upgrade guide](upgrading-v0.2.md) for the API and behavior changes.
 
-This is a next-minor behavior change: v0.1 shells implicitly restarted every plugin
+v0.2 changes this behavior: v0.1 shells implicitly restarted every plugin
 up to three times per minute. Review each plugin's Setup, cleanup, workers and
 external side effects before opting in. Dependents are also set up again when a
 restarted provider returns. Leave restart unset when that is unsafe. Hosts using

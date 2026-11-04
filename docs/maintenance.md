@@ -22,10 +22,9 @@ During v0, patch releases preserve the public API; breaking changes use a minor
 version bump, explain consumer changes in the changelog, and are tested against
 known consumers. Release tags are immutable.
 
-The current unreleased v0.2 candidate changes lifecycle behavior and requires a
-minor release. [Upgrading to v0.2](upgrading-v0.2.md) records the exported API diff,
-consumer actions, standalone validation and the app checks still needed before
-publication. Candidate review does not replace known-consumer release validation.
+v0.2 changes lifecycle behavior; [Upgrading to v0.2](upgrading-v0.2.md) describes
+the API addition and consumer changes. Test known consumers against each release
+candidate independently of the kit's standalone gate.
 
 A v1 release requires a reviewed public API and evidence from Wada and another
 independent app. After v1, fixes use patch versions, compatible additions use

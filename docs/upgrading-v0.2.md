@@ -1,24 +1,17 @@
 # Upgrading from v0.1.2 to v0.2
 
-v0.2 is unreleased. This guide covers the candidate lifecycle hardening changes;
-it does not announce a tag or confirm compatibility with Terminal or Cowork.
-Apps may stay on their existing pinned releases while candidate checks and
-migrations are prepared separately.
+v0.2.0 hardens plugin construction, restart and shutdown behavior. Apps can upgrade
+independently; existing release tags remain unchanged.
 Consumers older than v0.1.2 must also review the intervening [changelog](../CHANGELOG.md),
 including the MyGo upgrade in v0.1.2.
 
-## Compatibility decision
+## Compatibility
 
-Use a v0 minor release, not a patch: restart defaults, cancellation order, error
-reporting and disposed-owner behavior change. The module path remains
+This is a v0 minor release: restart defaults, cancellation order, error reporting
+and disposed-owner behavior change. The module path remains
 `github.com/xleotranx/wada-kit`.
 
-The exported API comparison with v0.1.2 found one addition:
-
-```text
-Compatible changes:
-- ./kernel.Manifest.Restart: added
-```
+The only exported API addition is `Manifest.Restart *Restart`.
 
 No exported functions, methods or interfaces were removed or changed. Existing
 implementations and fakes need no new methods. Convert any unkeyed Manifest
@@ -34,7 +27,7 @@ own module graphs.
 
 ## Behavior to review
 
-| Area | v0.1.2 | v0.2 candidate | Consumer action |
+| Area | v0.1.2 | v0.2.0 | Consumer action |
 |---|---|---|---|
 | Shell restart | Automatically restarted runtime failures up to three times per minute | No automatic restart without a manifest policy | Opt in only where repeating Setup is safe |
 | Kernel restart | One explicitly configured default policy | Manifest can override that default; both limits must be positive | Give every enabled policy a positive count and time window |
@@ -104,33 +97,17 @@ can be inspected with errors.As for *kernel.PluginError and *kernel.PanicError;
 errors.Is still finds joined context or store errors. Host callback panics and
 Strict-mode panic propagation remain unchanged.
 
-## Review evidence and remaining release work
+## Upgrade and verify
 
-The standalone candidate has passed MyGo lifetime vet, pinned lint, race tests,
-no-cgo tests, the all-package build, and the external Notes consumer check. New
-regression tests reproduced lifecycle failures before fixes; targeted guard-removal
-experiments confirmed that the tests detect restart-window, cancellation-order and
-pipeline-commit regressions.
+Upgrade in the app's own repository:
 
-The API comparison used golang.org/x/exp/apidiff at
-v0.0.0-20250620022241-b7579e27df2b with golang.org/x/tools v0.52.0 in an isolated
-temporary module. It compared all nine importable packages from a v0.1.2 source
-archive with the candidate. The tool added no repository dependency. This checks
-exported types; the behavior table above records changes that type comparison
-cannot detect.
+```sh
+go get github.com/xleotranx/wada-kit@v0.2.0
+GOWORK=off make check
+```
 
-The review found and fixed direct plugin-root disposal bypassing dependent teardown.
-Tests cover ordinary and locked providers, dependent-first cleanup, explicit
-recovery, stale roots and child-scope isolation. No unresolved issue was found in
-the reviewed changes; this is not a proof of all possible kernel behavior.
-
-Before publishing, follow [Maintenance and releases](maintenance.md): validate
-known apps against the candidate in temporary checkouts/workspaces, review this
-guide with those results, and run the release-commit and CI checks. Terminal and
-Cowork candidate checks, native app smoke checks and app migrations have not been
-performed in this stability pass. No tag, push or GitHub release is implied.
-
-After a v0.2.0 tag is actually published, each app can upgrade in its own change
-with `go get github.com/xleotranx/wada-kit@v0.2.0` and its full GOWORK=off gate.
-Until then, use the documented temporary workspace approach for candidate checks;
-do not commit a local replacement or change a release tag.
+Review the restart and shutdown changes above and run the app's native smoke
+checks with a temporary data directory. Keep app-specific policy and contracts in
+the app. Do not commit a local replacement or rely on a development workspace for
+release validation. See [Maintenance and releases](maintenance.md) for the kit's
+release checks.

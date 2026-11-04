@@ -20,7 +20,7 @@ contracts on top. Apps consume tagged releases from this independent repository.
 | `examples/notes` | The smallest app on the kit |
 
 Notes: [kernel API](docs/kernel-api.md), [shell and the kit's plugins](docs/shell.md).
-The unreleased v0.2 candidate has a [compatibility and upgrade guide](docs/upgrading-v0.2.md).
+Upgrading from v0.1? Read the [v0.2 upgrade guide](docs/upgrading-v0.2.md).
 
 ## Use
 
@@ -38,7 +38,7 @@ deploy keys, or `GOPRIVATE` configuration.
 Add the kit to your app:
 
 ```sh
-go get github.com/xleotranx/wada-kit@v0.1.2
+go get github.com/xleotranx/wada-kit@v0.2.0
 ```
 
 An app owns its `main.go`, plugins, contracts, packaging configuration, bundle

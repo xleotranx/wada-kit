@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — next minor release
+## v0.2.0 — 2026-11-05
 
 ### Added
 
@@ -48,8 +48,7 @@
   scopes for local work and Kernel.Enable/Disable for normal plugin management.
 
 Settings formats and dependencies are unchanged. See the
-[v0.2 compatibility and upgrade guide](docs/upgrading-v0.2.md). App candidate
-validation, migrations and release tagging are separate work.
+[v0.2 upgrade guide](docs/upgrading-v0.2.md) for consumer changes.
 
 ## v0.1.2 — 2026-11-04
 
