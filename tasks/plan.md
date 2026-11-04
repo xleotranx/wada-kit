@@ -63,3 +63,16 @@ Test cancellation order, rejected activation/reuse, disposer error reporting,
 final settings written by disposers, and blocking worker cleanup bounded by the
 close context. Verify the standalone gate, build and external Notes consumer.
 Do not add hooks or move UI disposal onto workers. App migrations remain deferred.
+
+## Next increment: scope and capability lifetimes
+
+Exercise optional-provider disable/failure/re-enable, required dependent recovery,
+and old worker results/panics. Fix only demonstrated lifetime gaps: stale contexts
+must not provide services or poison a newer Setup; contributions must register
+their undo before immediate PointChanged callbacks; disposed callers must not
+emit events, run pipeline stages or apply pending pipeline commits.
+
+Keep read-only Use/Items semantics and public signatures. Optional consumers must
+re-query Use rather than cache a provider. Preserve required-service availability
+during dependent cleanup. Cover child scopes and replacement activations, document
+the resulting behavior, and run the standalone gate/build/Notes consumer check.

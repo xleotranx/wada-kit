@@ -94,13 +94,17 @@ Install ──► Disabled ──Enable──► (requirements met?) ──no─
    `*PanicError`, preserving its stack for diagnostics. Dependents remain Blocked;
    other plugins keep running. Construction failures are not automatically retried,
    including when construction was attempted by a posted restart. Enable can retry.
-4. A Setup that errors or panics, that declares a key it didn't provide, or during
+4. A Setup that errors or panics, that disposes its own context, that declares a
+   key it didn't provide, or during
    which a registration through its context failed (`Provide`, or `Contribute`, whose
    errors Setup need not check), has its registrations undone and the plugin is
    Failed. A plugin whose required provider
    went down while its Setup ran, as when a listener of the provider panicked at an
    event the Setup emitted, has its registrations undone once Setup returns and is
    Blocked.
+   Registration errors belong to the activation that owns the context: a rejected
+   registration through an old context cannot fail a newer Setup. Provide rejects
+   disposed contexts, including during a later activation of the same plugin.
 5. **Disable** disposes, newest first, every active plugin that requires a key the
    target provides (they become Blocked), then the target. Its settings stay.
 6. **Enable** sets the plugin up, then retries Blocked plugins. Enabling a second
@@ -121,8 +125,11 @@ Install ──► Disabled ──Enable──► (requirements met?) ──no─
    nil, so handle the first result; they do not resume a timed-out shutdown.
 
 Adding or removing a contribution posts `PointChanged` with the point's name: once
-for the changes to a point that land before the post runs, never during a dispose.
-A `Post` that runs at once announces each change as it happens.
+for the changes to a point that land before the post runs. With a queued scheduler,
+notification runs after disposal returns. A `Post` that runs at once announces each
+change as it happens, including removals during disposal.
+Contribution cleanup is registered before notification, so an immediate listener
+that disposes the contribution's owner cannot leave the entry or its ID registered.
 
 The `off` function `On` returns ends the subscription and lets go of it, so a scope
 that subscribes and unsubscribes through its life does not grow.
@@ -130,6 +137,21 @@ that subscribes and unsubscribes through its life does not grow.
 Disposing a scope marks it dead, cancels its `Lifetime`, disposes child scopes and
 runs its disposers, newest first. Afterwards its `Post` closures and task results are
 dropped, including failure reports from `Spawn` workers that panic after disposal.
+The same protection applies to task results and task panics from an older plugin
+activation, even when a Task is reused by a newer one. A disposed owner cannot
+start an Emit or Run: Emit does nothing; Run returns an error and no commit.
+This includes calls through the dying scope from its OnDispose callbacks; send
+any required lifecycle notification through a live owner before disposal begins.
+Disposing a pipeline caller during a stage aborts the run. Pending pipeline commits
+also expire with the caller's exact scope, as well as the stage's scope; disposing
+the caller during one commit prevents later commits.
+
+Optional capability consumers remain active when a provider is disabled or fails.
+Use reports no provider until one returns; re-query it on each use instead of
+retaining the interface. Required consumers are disposed first and become Blocked;
+when the provider returns, they receive fresh contexts and the new service value.
+Read-only Use and Items retain registry lookup semantics during cleanup, including
+availability of a required provider until its dependent's cleanup has finished.
 
 ### Blocking cleanup
 

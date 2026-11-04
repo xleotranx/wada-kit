@@ -577,6 +577,9 @@ func (k *Kernel) setup(p *plugin) bool {
 		err = p.setupErr
 	}
 	p.setupErr = nil
+	if err == nil && !c.s.alive {
+		err = errors.New("kernel: Setup disposed its context")
+	}
 	if err == nil {
 		for _, n := range p.m.Provides {
 			if s := k.services[n.Name()]; s == nil || s.by != p {

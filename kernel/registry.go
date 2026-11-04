@@ -42,11 +42,15 @@ type service struct {
 }
 
 // Provide registers v as the provider of k. It is allowed only during Setup,
-// for a key declared in the Manifest's Provides; an error fails that Setup. The service is withdrawn when
-// the plugin is disposed, after the plugins that require it.
+// for a key declared in the Manifest's Provides, through a live context. An error
+// from the current activation fails its Setup; a stale context cannot fail a
+// newer activation. The service is withdrawn when the plugin is disposed, after
+// the plugins that require it.
 func Provide[T any](c *Context, k Key[T], v T) error {
 	p, kn := c.p, c.s.k
 	switch {
+	case !c.s.alive:
+		return c.s.failSetup(fmt.Errorf("kernel: %s provided on a disposed scope", k.name))
 	case !p.settingUp:
 		return c.s.failSetup(fmt.Errorf("kernel: %s provided outside Setup", k.name))
 	case !declares(p.m.Provides, k.name):
@@ -135,8 +139,13 @@ func On[T any](o Owner, t Topic[T], fn func(T)) (off func()) {
 
 // Emit calls the listeners subscribed before it started, synchronously and in
 // subscription order. A panicking listener fails its plugin; the rest still run.
+// An emission cannot start from a disposed owner.
 func Emit[T any](o Owner, t Topic[T], v T) {
-	k := o.owner().k
+	s := o.owner()
+	if !s.alive {
+		return
+	}
+	k := s.k
 	tp := k.topics[t.name]
 	if tp == nil {
 		return
@@ -207,10 +216,16 @@ func Transform[T any](o Owner, p Pipeline[T], order int, fn func(T) (T, func(), 
 // is returned as a *PluginError; so is a panic, which also fails its plugin.
 // On success Run returns commit, which applies what the transforms set aside
 // once the caller uses the result; a caller that drops the result doesn't call
-// it. Each commit runs at most once, for a plugin that is still active, and a
-// panicking one fails only its plugin.
+// it. A disposed caller returns an error with no commit; disposal during a stage
+// aborts the run too. Each commit runs at most once, while both caller and stage
+// scopes are alive, and a panicking one fails only its plugin.
 func Run[T any](o Owner, p Pipeline[T], v T) (T, func(), error) {
-	k := o.owner().k
+	s := o.owner()
+	if !s.alive {
+		var zero T
+		return zero, nil, errors.New("kernel: run on a disposed scope")
+	}
+	k := s.k
 	type pending struct {
 		s  *scope
 		fn func()
@@ -232,6 +247,10 @@ func Run[T any](o Owner, p Pipeline[T], v T) (T, func(), error) {
 				var zero T
 				return zero, nil, &PluginError{Plugin: st.s.plugin.id(), Err: err}
 			}
+			if !s.alive {
+				var zero T
+				return zero, nil, errors.New("kernel: run on a disposed scope")
+			}
 			cur = next
 			if done != nil {
 				commits = append(commits, pending{st.s, done})
@@ -246,6 +265,9 @@ func Run[T any](o Owner, p Pipeline[T], v T) (T, func(), error) {
 		}
 		committed = true
 		for _, c := range commits {
+			if !s.alive {
+				return
+			}
 			if c.s.alive {
 				k.call(c.s.plugin, c.fn)
 			}
@@ -315,7 +337,6 @@ func Contribute[T any](o Owner, p Point[T], id string, order int, v T) error {
 	pt.entries = append(pt.entries, e)
 	pt.ids[id] = true
 	pt.cache = nil
-	s.k.pointMoved(p.name)
 	s.onDispose(func() {
 		pt.entries = slices.DeleteFunc(pt.entries, func(x *entry) bool { return x == e })
 		delete(pt.ids, id)
@@ -325,6 +346,7 @@ func Contribute[T any](o Owner, p Point[T], id string, order int, v T) error {
 		}
 		s.k.pointMoved(p.name)
 	})
+	s.k.pointMoved(p.name)
 	return nil
 }
 

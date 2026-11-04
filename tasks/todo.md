@@ -38,3 +38,17 @@ mutation confirmed that the zero-window regression is detected.
 Shutdown verification passed: lifetime vet, lint, race/no-cgo suites, build and
 external Notes consumer. Regression assertions failed before the fix; omitting
 early cancellation also failed the cancellation-order test. No new lifecycle API.
+
+## Scope and capability lifetimes
+
+- [x] Reproduce stale-context registration/setup failures, immediate contribution
+  disposal leaks, and disposed caller event/pipeline delivery.
+- [x] Fix demonstrated gaps and verify provider removal/recovery and old-worker
+  isolation, including child scopes and replacement activations.
+- [x] Document lifetime semantics, review the diff, run the full standalone gate,
+  build and external Notes consumer, then commit.
+
+Lifetime verification passed: lifetime vet, lint, race/no-cgo tests, build and
+external Notes consumer. Reproduction tests failed before the fixes; removing the
+commit caller-lifetime guard also failed its regression assertion. Optional and
+required provider recovery and old task/post isolation pass without API additions.

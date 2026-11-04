@@ -35,6 +35,13 @@
   and settings errors while continuing cleanup. Blocking resource cleanup remains
   supported through tracked Spawn workers; synchronous OnDispose callbacks must
   return promptly and cannot be interrupted by Close's context.
+- Disposed contexts can no longer register services or poison a newer activation's
+  Setup. A Setup that disposes its own context is rejected rather than marked active.
+- Contributions register cleanup before notifying PointChanged listeners, so
+  immediate callbacks that dispose their owner cannot leak entries or reserve IDs.
+- Disposed callers cannot start events or pipelines; pending pipeline commits also
+  expire with the caller's scope. Disposal during a stage aborts the run, and
+  disposal during a commit prevents later commits.
 
 Settings formats and dependencies are unchanged. See `docs/shell.md` for upgrade
 instructions; app migrations and release tagging are separate work.

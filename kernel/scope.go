@@ -66,10 +66,17 @@ func (s *scope) drop(d *disposer) {
 }
 
 // failSetup records err as the failure of the Setup that is running for the
-// scope's plugin, if one is, and returns it.
+// scope's activation, if one is, and returns it. Old contexts must not poison
+// another activation of the same plugin record.
 func (s *scope) failSetup(err error) error {
 	if p := s.plugin; p != nil && p.settingUp && p.setupErr == nil {
-		p.setupErr = err
+		root := s
+		for root.parent != nil {
+			root = root.parent
+		}
+		if p.ctx != nil && root == p.ctx.s {
+			p.setupErr = err
+		}
 	}
 	return err
 }
