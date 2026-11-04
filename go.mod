@@ -5,7 +5,7 @@ go 1.27.3
 tool github.com/egoist/mygo/cmd/mygo
 
 require (
-	github.com/egoist/mygo v0.7.1
+	github.com/egoist/mygo v0.7.4
 	github.com/oneo-me/onevra/source v0.2026.13
 )
 
