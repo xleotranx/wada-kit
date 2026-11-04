@@ -44,7 +44,7 @@ only when a consumer requires it. Do not move an existing tag to repair a releas
 ## Checks
 
 `GOWORK=off make check` runs the kit gate independently of any sibling app.
-CI also runs `scripts/check-consumer.sh`, which copies the public Notes example
+Run `scripts/check-consumer.sh` too; it copies the public Notes example
 into a temporary external module and tests it against the candidate kit through
 a temporary replacement. This checks external imports and exported APIs.
 
@@ -52,9 +52,9 @@ For a published release, `scripts/check-consumer.sh v0.1.0` instead downloads an
 tests that tag with no replacement. The public module needs no GitHub credentials
 or `GOPRIVATE` configuration.
 
-## CI consumers
+## Consumers
 
-The kit is public. Apps and CI fetch tagged versions through normal Go module
+The kit is public. Apps fetch tagged versions through normal Go module
 downloads; no cross-repository token, deploy key, SSH URL rewrite, or `GOPRIVATE`
 setting is required. Each app owns its checks and pinned kit version. Keep
 `GOWORK=off` in release checks so a local checkout cannot hide an unpublished
@@ -68,10 +68,11 @@ change.
    against the preceding tag, including behavioral and persistence changes.
 3. Test known consumers against the candidate kit in a temporary workspace or
    checkout. Wada's `make check` covers its plugin integration and native views.
-4. Commit the release changes, push `main`, and wait for its CI to pass.
+4. Commit the release changes and push `main`. Verification runs locally; this
+   repository has no automated CI workflow.
 5. Create an annotated version tag and push that tag. Tags use `v0.1.0` format at
    the repository root. Create a GitHub release with the matching changelog notes.
 6. Run `scripts/check-consumer.sh <tag>` to verify public module download and
    external use without a local replacement.
 7. Upgrade each app's `go.mod` and `go.sum` in its own change; run its full gate
-   with `GOWORK=off` before merging. CI must use the tagged module too.
+   with `GOWORK=off` before merging. Release checks must use the tagged module too.

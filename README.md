@@ -64,12 +64,13 @@ repository to validate its declared dependencies. Do not commit a local `replace
 or workspace as an app's release dependency.
 
 [Maintenance and releases](docs/maintenance.md) describes ownership, compatibility,
-CI access, and the release checks. [Changelog](CHANGELOG.md) records releases.
+consumer access, and the release checks. [Changelog](CHANGELOG.md) records releases.
 
 ## Check
 
 `make check`: MyGo lifetime vet, pinned lint (the import boundaries; nothing here
-imports an app), race tests and no-cgo tests.
+imports an app), race tests and no-cgo tests. Checks run locally; this repository
+has no automated CI workflow.
 
 ## License
 
