@@ -25,3 +25,16 @@ failing against the original implementation before the fix.
 Restart verification passed: lifetime vet, lint, race and no-cgo suites, build,
 and external Notes consumer. New tests failed before behavior changes; a guard
 mutation confirmed that the zero-window regression is detected.
+
+## Shutdown guarantees
+
+- [x] Add regression tests for all-lifetime cancellation, activation during close,
+  reuse after close and attributed disposer failures; verify the gaps reproduce.
+- [x] Harden Close entry and error reporting. Verify bounded worker cleanup and
+  final settings persistence without a new lifecycle API.
+- [x] Document the shutdown contract and blocking-cleanup pattern. Review, run
+  the full standalone gate, build and external Notes consumer, then commit.
+
+Shutdown verification passed: lifetime vet, lint, race/no-cgo suites, build and
+external Notes consumer. Regression assertions failed before the fix; omitting
+early cancellation also failed the cancellation-order test. No new lifecycle API.

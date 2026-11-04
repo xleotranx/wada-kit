@@ -45,3 +45,21 @@ shutdown API changes remain separate work.
 Strict mode must continue propagating panics. Rollback applies to registry state,
 not arbitrary factory side effects. Construction failure must not queue an
 automatic restart or leave services, scopes or contributions registered.
+
+## Next increment: shutdown guarantees
+
+Use existing Scope.Spawn workers for potentially blocking resource cleanup after
+Lifetime cancellation. Keep OnDispose synchronous, quick and UI-thread-only;
+neither context cancellation nor the kernel can interrupt an arbitrary disposer.
+No new lifecycle API is needed for this increment.
+
+At Close entry, make the kernel terminal and cancel all active plugin lifetimes
+and the host lifetime before invoking any disposer. Reject Install/Start after
+Close and activation during Close. Preserve dependent-first disposal, final
+settings persistence and idempotence. Return attributed disposer failures alongside
+worker/settings errors. Keep host panics and Strict behavior unchanged.
+
+Test cancellation order, rejected activation/reuse, disposer error reporting,
+final settings written by disposers, and blocking worker cleanup bounded by the
+close context. Verify the standalone gate, build and external Notes consumer.
+Do not add hooks or move UI disposal onto workers. App migrations remain deferred.

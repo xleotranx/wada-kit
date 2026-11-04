@@ -28,6 +28,13 @@
   permit an explicit retry without repeatedly restarting failed construction.
 - Restart policies with a nonpositive count or time window now disable automatic
   restart, preventing malformed windows from bypassing the restart budget.
+- Close prevents new activation and cancels every active plugin lifetime before
+  invoking disposers, so cleanup can observe cancellation across dependencies.
+  Install and Start now reject a kernel that was closed before startup.
+- In non-strict mode, Close returns attributed disposer panics alongside worker
+  and settings errors while continuing cleanup. Blocking resource cleanup remains
+  supported through tracked Spawn workers; synchronous OnDispose callbacks must
+  return promptly and cannot be interrupted by Close's context.
 
 Settings formats and dependencies are unchanged. See `docs/shell.md` for upgrade
 instructions; app migrations and release tagging are separate work.

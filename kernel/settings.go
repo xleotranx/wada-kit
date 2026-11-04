@@ -12,7 +12,9 @@ import (
 type Store interface {
 	Load(ctx context.Context) ([]Value, error)
 	// Save writes changed values in one transaction. A nil JSON deletes the key.
-	// The kernel calls it off the UI thread, one call at a time.
+	// Runtime saves run off the UI thread, one call at a time. Close may call
+	// Save synchronously for the final batch; implementations must honor ctx
+	// to keep that call bounded by the shutdown deadline.
 	Save(ctx context.Context, changed []Value) error
 }
 

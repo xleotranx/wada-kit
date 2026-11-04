@@ -55,6 +55,17 @@ restarted provider returns. Leave restart unset when that is unsafe. Hosts using
 the kernel directly may retain an explicit `Options.Restart` default; an individual
 plugin can override it, including disabling it with `&kernel.Restart{}`.
 
+### Shutdown
+
+The native host calls Close with a three-second context. The kernel first prevents
+activation and cancels all plugin lifetimes, then runs UI disposal, waits for
+tracked workers, and flushes settings. Recovered disposer failures and unfinished
+workers are reported by Close and logged by the host. OnDispose callbacks must
+return promptly: the timeout bounds worker waiting and is passed to the final
+settings save, but cannot interrupt synchronous UI cleanup. Use tracked Spawn
+workers for blocking resource cleanup; see the kernel API's Blocking cleanup
+section. A timeout reports incomplete shutdown; it does not kill a worker.
+
 ## Window
 
 `shell` is the window host. It creates the kernel, opens the settings store, builds

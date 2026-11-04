@@ -113,7 +113,9 @@ func (s *Scope) Lifetime() context.Context { return s.s.ctx }
 
 func (s *Scope) Alive() bool { return s.s.alive }
 
-// OnDispose runs fn during dispose, in reverse registration order.
+// OnDispose runs fn synchronously on the UI thread during dispose, in reverse
+// registration order. It must not block: Close's context cannot interrupt it.
+// Use a Spawn worker that waits for Lifetime cancellation for blocking cleanup.
 func (s *Scope) OnDispose(fn func()) { s.s.onDispose(fn) }
 
 // NewScope returns a child scope, disposed with this one at the latest.
@@ -171,6 +173,8 @@ func (s *Scope) FrameDue() { s.s.k.asked = true }
 // from a worker the kernel runs (a Spawn body or the work of Go, of any
 // plugin), which is how a worker starts a goroutine of its own; a plugin
 // never uses a bare go statement, whose panic would end the app.
+// A worker may perform blocking resource cleanup after ctx is cancelled; it stays
+// counted until it returns, and Close's context bounds the wait for that return.
 func (s *Scope) Spawn(fn func(ctx context.Context)) bool {
 	sc := s.s
 	if sc.ctx.Err() != nil { // cancelled first by dispose; safe off the UI thread

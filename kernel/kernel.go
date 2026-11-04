@@ -249,6 +249,9 @@ func (k *Kernel) owner() *scope { return k.root }
 // registry unchanged. Panics are returned as errors unless Strict is set;
 // registry rollback also runs before a strict-mode panic propagates.
 func (k *Kernel) Install(factories ...Factory) (err error) {
+	if k.closed {
+		return errors.New("kernel: Install after Close")
+	}
 	if k.started {
 		return errors.New("kernel: Install after Start")
 	}
@@ -346,6 +349,9 @@ func (k *Kernel) checkCycles() error {
 
 // Start loads settings and sets up every enabled plugin in dependency order.
 func (k *Kernel) Start() error {
+	if k.closed {
+		return errors.New("kernel: Start after Close")
+	}
 	if k.started {
 		return errors.New("kernel: Start called twice")
 	}
@@ -438,23 +444,36 @@ func (k *Kernel) Plugins() []Status {
 
 func (k *Kernel) changed() { Emit(k, PluginsChanged, k.Plugins()) }
 
-// Close disposes every plugin, waits for workers until ctx ends, then writes
-// settings that are still unsaved.
+// Close prevents further activation, cancels every lifetime, disposes every
+// plugin, waits for workers until ctx ends, then writes unsaved settings.
+// Disposers run on the calling UI thread and must not block; ctx bounds the
+// worker wait and is passed to the final settings save, not to disposers.
+// Repeated calls do nothing and return nil; callers must handle the first error.
 func (k *Kernel) Close(ctx context.Context) error {
 	if k.closed {
 		return nil
+	}
+	k.closed = true
+	active := slices.Clone(k.active)
+	k.root.cancel()
+	for _, p := range active {
+		p.ctx.s.cancel()
 	}
 	for len(k.active) > 0 {
 		k.dispose(k.active[len(k.active)-1], Disabled, nil)
 	}
 	k.root.dispose()
-	k.closed = true
 	if k.lagTimer != nil {
 		k.lagTimer.Stop()
 	}
 	wait := make(chan struct{})
 	go func() { k.workers.Wait(); close(wait) }()
 	var errs []error
+	for _, p := range active {
+		if p.err != nil {
+			errs = append(errs, &PluginError{Plugin: p.m.ID, Err: p.err})
+		}
+	}
 	select {
 	case <-wait:
 	case <-ctx.Done():

@@ -108,10 +108,17 @@ Install ──► Disabled ──Enable──► (requirements met?) ──no─
    are enabled at Start, the later one in install order is Failed. Switching between
    two providers of a key is `Disable` of one, then `Enable` of the other.
 7. Enablement is saved under the `kernel` namespace.
-8. **Close** disposes every plugin, waits for workers until its context ends, then
+8. **Close** makes the kernel terminal and cancels all active plugin lifetimes and
+   the host lifetime before any disposer runs. It then disposes every plugin in
+   dependent-first order, waits for workers until its context ends, then
    collects the in-flight settings save and writes settings not yet saved. A failed
    batch is retried with newer changes taking precedence. A failed final save is
    returned to the caller; a timed-out save is never overlapped by another save.
+   Recovered disposer panics are returned as `*PluginError` values containing
+   `*PanicError`; multiple failures are joined with worker/settings errors. Cleanup
+   continues in non-strict mode. Install and Start after Close, and Enable/Disable
+   during or after Close, return errors. Repeated Close calls do nothing and return
+   nil, so handle the first result; they do not resume a timed-out shutdown.
 
 Adding or removing a contribution posts `PointChanged` with the point's name: once
 for the changes to a point that land before the post runs, never during a dispose.
@@ -123,6 +130,37 @@ that subscribes and unsubscribes through its life does not grow.
 Disposing a scope marks it dead, cancels its `Lifetime`, disposes child scopes and
 runs its disposers, newest first. Afterwards its `Post` closures and task results are
 dropped, including failure reports from `Spawn` workers that panic after disposal.
+
+### Blocking cleanup
+
+`OnDispose` runs synchronously on the UI thread and must return promptly. Close's
+context cannot interrupt a blocking disposer. UI handles must still be disposed
+on that thread. A background resource whose cleanup may block can use an existing
+tracked worker, registered during Setup:
+
+```go
+// resource is a local, worker-safe resource, not UI or mutable plugin state.
+c.Spawn(func(ctx context.Context) {
+	<-ctx.Done()
+	if err := resource.Close(); err != nil {
+		log.Printf("resource cleanup: %v", err)
+	}
+})
+```
+
+The same pattern runs on scope disposal, plugin disable/failure and kernel Close.
+It must not depend on a posted UI closure to finish: Close waits on the UI thread,
+and posts from disposed scopes are dropped. Avoid also closing that resource from
+OnDispose. Workers may overlap disposal and each other; dependent-first UI disposal
+does not order completion of background cleanup. A restart or re-enable may begin
+while an older activation's cleanup is still running.
+
+Close bounds its wait for workers; it cannot terminate an uncooperative goroutine.
+An unfinished worker remains counted in diagnostics after a timeout. Worker cleanup
+errors need worker-safe reporting, as above; a panic reported after scope disposal
+does not revive or fail a newer activation. The final Store.Save receives Close's
+context and must honor it; an implementation that ignores cancellation can block
+that synchronous call. These limits apply to the shell's shutdown timeout too.
 
 ## Threading
 
