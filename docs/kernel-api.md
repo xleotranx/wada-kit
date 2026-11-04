@@ -72,14 +72,23 @@ Install ──► Disabled ──Enable──► (requirements met?) ──no─
 1. **Install** takes factories and reads manifests only: it calls each factory once
    and keeps the plugin it makes for its first activation. It rejects a factory that
    makes no plugin, malformed or duplicate IDs, a plugin requiring a key it provides,
-   and requirement cycles.
+   and requirement cycles. An error rolls back the entire batch, preserving earlier
+   successful Install calls; corrected batches may reuse the rejected IDs. Factory
+   and manifest panics return an error containing `*PanicError` unless Strict is set.
+   Registry rollback also runs before a strict-mode panic propagates. Factories and
+   manifests only construct and describe plugins: external side effects cannot be
+   rolled back. Acquire resources in Setup and register cleanup through Context.
 2. **Start** loads the store, then sets up enabled plugins in install order, repeating
    while a setup provides something new, so providers come before their consumers.
    Then it emits `Started` and `PluginsChanged`.
 3. Every later activation calls the factory again, so a Setup always starts on a new
    plugin with nothing left of an earlier activation; state that must outlive one
    (such as a backend's count of connection attempts) lives outside the plugin. A
-   factory that makes a plugin with another ID fails the activation.
+   factory that makes no plugin or one with another ID fails the activation. In
+   non-strict mode, a factory or manifest panic also fails the activation with a
+   `*PanicError`, preserving its stack for diagnostics. Dependents remain Blocked;
+   other plugins keep running. Construction failures are not automatically retried,
+   including when construction was attempted by a posted restart. Enable can retry.
 4. A Setup that errors or panics, that declares a key it didn't provide, or during
    which a registration through its context failed (`Provide`, or `Contribute`, whose
    errors Setup need not check), has its registrations undone and the plugin is

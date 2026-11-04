@@ -29,6 +29,8 @@ type Plugin interface {
 // Factory makes a plugin. The kernel calls it once at Install, for the
 // manifest and the first activation, and again for every later activation,
 // so each Setup starts on a new value with nothing left of an earlier one.
+// Factories and Manifest only construct and describe plugins; acquire resources
+// in Setup and register their cleanup through Context.
 type Factory func() Plugin
 
 type Manifest struct {
@@ -236,11 +238,32 @@ func New(opts Options) *Kernel {
 func (k *Kernel) owner() *scope { return k.root }
 
 // Install registers plugins by manifest. It runs no plugin code beyond the
-// factories and Manifest and must precede Start.
-func (k *Kernel) Install(factories ...Factory) error {
+// factories and Manifest and must precede Start. A failed batch leaves the
+// registry unchanged. Panics are returned as errors unless Strict is set;
+// registry rollback also runs before a strict-mode panic propagates.
+func (k *Kernel) Install(factories ...Factory) (err error) {
 	if k.started {
 		return errors.New("kernel: Install after Start")
 	}
+	before := len(k.plugins)
+	committed := false
+	defer func() {
+		if !committed {
+			for _, p := range k.plugins[before:] {
+				delete(k.byID, p.m.ID)
+			}
+			clear(k.plugins[before:])
+			k.plugins = k.plugins[:before]
+		}
+	}()
+	if perr := k.guard(func() { err = k.install(factories) }); perr != nil {
+		err = fmt.Errorf("kernel: install: %w", perr)
+	}
+	committed = err == nil
+	return err
+}
+
+func (k *Kernel) install(factories []Factory) error {
 	for _, f := range factories {
 		var p Plugin
 		if f != nil {
@@ -493,10 +516,17 @@ func (k *Kernel) settle() {
 func (k *Kernel) setup(p *plugin) bool {
 	inst := p.fresh
 	p.fresh = nil
-	if inst == nil {
-		inst = p.make()
+	valid := false
+	if err := k.guard(func() {
+		if inst == nil {
+			inst = p.make()
+		}
+		valid = inst != nil && inst.Manifest().ID == p.m.ID
+	}); err != nil {
+		p.state, p.err = Failed, err
+		return false
 	}
-	if inst == nil || inst.Manifest().ID != p.m.ID {
+	if !valid {
 		p.state, p.err = Failed, errors.New("its factory made another plugin")
 		return false
 	}
@@ -504,9 +534,7 @@ func (k *Kernel) setup(p *plugin) bool {
 	p.ctx, p.settingUp, p.err, p.setupErr = c, true, nil, nil
 	var err error
 	k.timed(p, func() {
-		if k.opts.Strict {
-			err = inst.Setup(c)
-		} else if perr := recovered(func() { err = inst.Setup(c) }); perr != nil {
+		if perr := k.guard(func() { err = inst.Setup(c) }); perr != nil {
 			err = perr
 		}
 	})
@@ -675,6 +703,16 @@ func (k *Kernel) restart(p *plugin) {
 	p.state = Disabled // so settle sets it up; its error stays until then
 	k.settle()
 	k.changed()
+}
+
+// guard applies the kernel's panic policy to code that has not become an
+// active plugin callback yet. Its caller decides how to record the failure.
+func (k *Kernel) guard(fn func()) error {
+	if k.opts.Strict {
+		fn()
+		return nil
+	}
+	return recovered(fn)
 }
 
 func recovered(fn func()) (err error) {

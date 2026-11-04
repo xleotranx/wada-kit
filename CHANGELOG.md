@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Failed `Kernel.Install` batches now discard all newly added plugin records,
+  preserving earlier installations and allowing a corrected retry. Rollback also
+  runs before a strict-mode panic propagates.
+- In non-strict mode, plugin factory and manifest panics return installation
+  errors or fail reactivation instead of escaping the kernel's recovery boundary.
+  Reactivation failures retain panic diagnostics, leave dependents blocked, and
+  permit an explicit retry without repeatedly restarting failed construction.
+
+Public signatures, settings formats and restart defaults are unchanged.
+
 ## v0.1.2 — 2026-11-04
 
 ### Added
