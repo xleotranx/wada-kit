@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.1.2 — 2026-11-04
+
+### Added
+
+- `Options.Capture` lets a host render the window. The shell implements
+  `Capture() ([]byte, error)` as an optional method on its host, so a plugin
+  finds it with a type assertion and a kit without it still compiles. Wada
+  Terminal uses it for `wada-terminal shot`.
+
+### Changed
+
+- MyGo v0.7.1 → v0.7.4: an idle macOS window wakes far less, terminals draw
+  block sextants and themed scrollbars, and `terminal.Options.ScrollMultiplier`
+  sets the wheel's distance.
+
+The Go API is otherwise unchanged; the new method is optional.
+
 ## v0.1.1 — 2026-10-31
 
 ### Added
