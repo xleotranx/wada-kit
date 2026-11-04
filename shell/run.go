@@ -100,6 +100,7 @@ func Run(app App, plugins ...kernel.Factory) {
 			},
 			Notify: notifier(), Clipboard: readClipboard, DataDir: dir, Foreground: func() bool { return win.IsVisible() && !win.IsMinimized() && win.IsFocused() },
 			NewWebView: func() (shell.WebView, error) { return newWebPage(win) },
+			Capture:    func() ([]byte, error) { return win.CapturePage() },
 			BindGlobal: mygo.GlobalShortcut.Register, UnbindGlobal: mygo.GlobalShortcut.Unregister,
 			SetHidden: func(hidden bool) {
 				if hidden {

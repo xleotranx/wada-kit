@@ -470,3 +470,17 @@ func TestGlobalShortcutsFollowTheCommands(t *testing.T) {
 		t.Fatal("closing kept a shortcut bound")
 	}
 }
+
+// TestHostCapture checks the optional capture method: a window asks its
+// renderer for a PNG, and a headless host says it has none.
+func TestHostCapture(t *testing.T) {
+	png := []byte("\x89PNG\r\n\x1a\nkit")
+	h := &host{capture: func() ([]byte, error) { return png, nil }}
+	got, err := h.Capture()
+	if err != nil || string(got) != string(png) {
+		t.Fatalf("Capture() = %q, %v", got, err)
+	}
+	if _, err := (&host{}).Capture(); !errors.Is(err, ErrNoCapture) {
+		t.Fatalf("a host with no renderer returned %v", err)
+	}
+}

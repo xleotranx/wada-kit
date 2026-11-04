@@ -5,6 +5,7 @@ package shell
 
 import (
 	"context"
+	"errors"
 	"log"
 	"slices"
 	"strings"
@@ -60,6 +61,10 @@ type Options struct {
 	// NewWebView makes a web page in the window; nil in tests, where
 	// Host.NewWebView returns shell.ErrNoWebViews.
 	NewWebView func() (shell.WebView, error)
+	// Capture returns a PNG of the window as it is. Nil in tests, where
+	// Host.Capture returns ErrNoCapture. A plugin finds it by an optional
+	// interface, so a kit without it still compiles.
+	Capture func() ([]byte, error)
 }
 
 // Shell is a kernel plus the window that shows it.
@@ -97,7 +102,8 @@ func New(opts Options, plugins ...kernel.Factory) (*Shell, error) {
 	// The shell reaches its own plugin as the one set up now.
 	newHost := func() kernel.Plugin {
 		s.host = &host{k: s.Kernel, setTheme: opts.SetTheme, setVibrancy: opts.SetVibrancy, notify: opts.Notify,
-			foreground: opts.Foreground, setHidden: opts.SetHidden, clipboard: opts.Clipboard, dataDir: opts.DataDir, newWebView: opts.NewWebView}
+			foreground: opts.Foreground, setHidden: opts.SetHidden, clipboard: opts.Clipboard, dataDir: opts.DataDir, newWebView: opts.NewWebView,
+			capture: opts.Capture}
 		return s.host
 	}
 	if err := s.Kernel.Install(append([]kernel.Factory{newHost}, plugins...)...); err != nil {
@@ -459,7 +465,12 @@ type host struct {
 	page        string
 	toasts      []ui.Toast
 	services    ui.Services
+	capture     func() ([]byte, error)
 }
+
+// ErrNoCapture is what Host.Capture returns where the window has no renderer
+// to copy, as in a headless test.
+var ErrNoCapture = errors.New("this window cannot be captured")
 
 var _ shell.Host = (*host)(nil)
 
@@ -512,6 +523,16 @@ func (h *host) Notify(n shell.Notice) {
 
 func (h *host) Foreground() bool { return h.foreground == nil || h.foreground() }
 func (h *host) DataDir() string  { return h.dataDir }
+
+// Capture returns a PNG of the window as it is. It is an optional method, not
+// part of the Host interface: a plugin calls it on the UI thread after a type
+// assertion, so an older kit without it keeps working.
+func (h *host) Capture() ([]byte, error) {
+	if h.capture == nil {
+		return nil, ErrNoCapture
+	}
+	return h.capture()
+}
 
 func (h *host) SetHidden(hidden bool) {
 	if h.setHidden != nil {
