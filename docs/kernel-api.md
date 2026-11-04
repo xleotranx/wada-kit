@@ -58,6 +58,11 @@ Anything with many contributors is a `Point`; a `Key` has one provider.
   requires `shell.HostKey` doesn't care which plugin provides it.
 - `Locked` plugins can't be disabled. `DefaultOff` plugins start disabled until the
   user enables them once.
+- `Restart` is an optional `*Restart` policy, copied at Install. Nil inherits
+  `Options.Restart` (zero by default); `&kernel.Restart{}` explicitly disables
+  automatic restart. A policy with positive `Max` and `Within` opts in with its own
+  budget. Set it only when repeating Setup after a partial failure is safe. A
+  policy cannot make external mutations idempotent or stop uncancellable workers.
 
 ## Lifecycle
 
@@ -157,15 +162,20 @@ dropped, including failure reports from `Spawn` workers that panic after disposa
   original scope. Disposed contributions stay invalid after a plugin restarts or
   another contribution reuses their ID, including callbacks already queued by a menu.
 - `Options.Strict` re-panics instead (tests, and `<Env>_STRICT=1`; see the shell note).
-- `Options.Restart{Max, Within}` sets a plugin up again, on a new instance, after a
+- The effective `Restart{Max, Within}` policy sets a plugin up again, on a new instance, after a
   failure at run time: after its Setup returned, as when a view, listener or worker
   panicked. The restart is posted, so the callback that failed unwinds first, and
-  Blocked dependents come back with it. After `Max` restarts within `Within`, the
+  Blocked dependents come back with it. It repeats Setup, not the failed callback
+  or user command. Restart safety must account for dependent plugins being set up
+  again too. `Manifest.Restart` overrides `Options.Restart`; nil inherits it.
+  Both limits must be positive; otherwise automatic restart is disabled.
+  After `Max` restarts within `Within`, the
   next failure leaves the plugin Failed. A failing Setup, or a disposer that panics while the plugin
   is disposed for another reason, is not restarted. `Status.Restarting` marks a
   posted restart and `Status.Restarts` counts the restarts within the window;
   disabling the plugin cancels a posted restart, and enabling it starts the count
-  over. The zero value never restarts. `Options.Now` is the clock for the window.
+  over. Policies are copied at Install, and each plugin has its own budget and time
+  window. The zero value never restarts. `Options.Now` is the clock for the window.
 - A Failed plugin can be enabled again from Settings → Plugins.
 - Panics in host callbacks, registered on the `Kernel` itself, are app bugs and are
   not recovered.

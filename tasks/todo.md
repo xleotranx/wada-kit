@@ -12,3 +12,16 @@
 Verification passed: MyGo lifetime vet, pinned lint, race tests, no-cgo tests,
 all-package build, and the external Notes consumer. Regression tests were observed
 failing against the original implementation before the fix.
+
+## Explicit restart policy
+
+- [x] Reproduce shell default restarts and nonpositive-window restart loops.
+  Add tests for per-plugin override, budget isolation and snapshot behavior.
+- [x] Add manifest policy overrides and remove implicit shell restarts. Verify
+  that a restart does not replay a failed user command and existing tests pass.
+- [x] Document the minor-release behavior change and upgrade path. Review the
+  diff, run the standalone gate, build and external Notes consumer, and commit.
+
+Restart verification passed: lifetime vet, lint, race and no-cgo suites, build,
+and external Notes consumer. New tests failed before behavior changes; a guard
+mutation confirmed that the zero-window regression is detected.

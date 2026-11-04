@@ -1,6 +1,21 @@
 # Changelog
 
-## Unreleased
+## Unreleased — next minor release
+
+### Added
+
+- `Manifest.Restart` lets a plugin declare a bounded restart policy or explicitly
+  opt out of a kernel-wide policy. Policies are copied at installation; each plugin
+  keeps its own restart budget and time window.
+
+### Changed
+
+- **Breaking behavior:** the shell no longer automatically restarts every plugin
+  up to three times per minute. Plugins stay failed by default. To restore that
+  behavior for a plugin whose Setup and cleanup are safe to repeat, set its
+  manifest's `Restart` to `&kernel.Restart{Max: 3, Within: time.Minute}`. Review
+  side effects and dependent reactivation before opting in. Direct kernel hosts
+  can still explicitly set `Options.Restart`; nil manifest policies inherit it.
 
 ### Fixed
 
@@ -11,8 +26,11 @@
   errors or fail reactivation instead of escaping the kernel's recovery boundary.
   Reactivation failures retain panic diagnostics, leave dependents blocked, and
   permit an explicit retry without repeatedly restarting failed construction.
+- Restart policies with a nonpositive count or time window now disable automatic
+  restart, preventing malformed windows from bypassing the restart budget.
 
-Public signatures, settings formats and restart defaults are unchanged.
+Settings formats and dependencies are unchanged. See `docs/shell.md` for upgrade
+instructions; app migrations and release tagging are separate work.
 
 ## v0.1.2 — 2026-11-04
 

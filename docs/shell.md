@@ -37,10 +37,23 @@ the kernel decides which posts draw a frame (see the kernel note's Threading).
 Commands chosen from the menu bar or a system-wide shortcut run in a post that
 draws one.
 
-The shell gives the kernel a fixed restart policy: a plugin that fails at run time
-is set up again, up to 3 times a minute. A toast says "<Title> restarted after an
-error" for a restart and "<Title> stopped working" once the plugin stays Failed;
-Settings → Plugins shows it as Restarting or Stopped with the error.
+The shell does not automatically restart plugins by default. A plugin that can
+safely repeat Setup after a runtime failure opts in through its manifest, for
+example `Restart: &kernel.Restart{Max: 3, Within: time.Minute}`. The policy is
+copied at installation; both limits must be positive. A restart creates a fresh
+plugin and repeats Setup, without replaying the failed callback or user operation.
+A toast says "<Title> restarted after an error" for an opted-in restart and
+"<Title> stopped working" once the plugin stays Failed; Settings → Plugins shows
+it as Restarting or Stopped with the error. A stopped plugin can be enabled again.
+
+### Upgrade from v0.1
+
+This is a next-minor behavior change: v0.1 shells implicitly restarted every plugin
+up to three times per minute. Review each plugin's Setup, cleanup, workers and
+external side effects before opting in. Dependents are also set up again when a
+restarted provider returns. Leave restart unset when that is unsafe. Hosts using
+the kernel directly may retain an explicit `Options.Restart` default; an individual
+plugin can override it, including disabling it with `&kernel.Restart{}`.
 
 ## Window
 
@@ -82,7 +95,8 @@ default).
 differs from the last one.
 
 Every render, command and title callback runs through `kernel.Invoke`, so a panic
-fails only that plugin, which the restart policy below brings back.
+fails its owning plugin and blocks its dependents. The plugin stays stopped unless
+it has opted into automatic restart or the user enables it again.
 
 Commands with a `Menu` appear in the menu bar under that name, in the order of
 `App.Menus` (File, View, Help without it), and the menu owns their first shortcut.

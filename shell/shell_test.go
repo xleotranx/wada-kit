@@ -21,11 +21,14 @@ import (
 )
 
 type plugin struct {
-	id    string
-	setup func(*kernel.Context) error
+	id      string
+	setup   func(*kernel.Context) error
+	restart *kernel.Restart
 }
 
-func (p *plugin) Manifest() kernel.Manifest     { return kernel.Manifest{ID: p.id, Title: p.id} }
+func (p *plugin) Manifest() kernel.Manifest {
+	return kernel.Manifest{ID: p.id, Title: p.id, Restart: p.restart}
+}
 func (p *plugin) Setup(c *kernel.Context) error { return p.setup(c) }
 func (p *plugin) New() kernel.Plugin            { return p }
 
@@ -148,7 +151,8 @@ func TestShowPageAnnouncesEachChange(t *testing.T) {
 }
 
 func TestPanickingViewFailsOnlyItsPlugin(t *testing.T) {
-	bad := &plugin{id: "bad", setup: func(c *kernel.Context) error {
+	policy := kernel.Restart{Max: 3, Within: time.Minute}
+	bad := &plugin{id: "bad", restart: &policy, setup: func(c *kernel.Context) error {
 		return kernel.Contribute(c, shell.TitleBar, "bad.view", 0, shell.View{Render: func(*ui.Context) { panic("broken view") }})
 	}}
 	good := &plugin{id: "good", setup: func(c *kernel.Context) error {
@@ -162,7 +166,7 @@ func TestPanickingViewFailsOnlyItsPlugin(t *testing.T) {
 	}
 	// Each failure within the policy restarts the plugin, which fails again
 	// on its next frame; past the policy it stays stopped.
-	for range restartPolicy.Max {
+	for range policy.Max {
 		tt.Frame()
 		if st := status(); st.State != kernel.Failed || !st.Restarting || !tt.HasText("Still here") {
 			t.Fatalf("bad=%v restarting=%v texts=%q", st.State, st.Restarting, tt.Texts())
@@ -182,6 +186,28 @@ func TestPanickingViewFailsOnlyItsPlugin(t *testing.T) {
 	restarted, stopped := slices.Index(texts, "bad restarted after an error"), slices.Index(texts, "bad stopped working")
 	if restarted < 0 || stopped < restarted {
 		t.Fatalf("toasts %q", texts)
+	}
+}
+
+func TestShellDoesNotRestartPluginsByDefault(t *testing.T) {
+	setups := 0
+	p := &plugin{id: "bad", setup: func(c *kernel.Context) error {
+		setups++
+		return kernel.Contribute(c, kernel.Commands, "bad.run", 0, kernel.Command{
+			Run: func() { panic("failed user operation") },
+		})
+	}}
+	s, drain := newShell(t, p.New)
+	command := kernel.Items(s.Kernel, kernel.Commands)[0]
+	kernel.Invoke(s.Kernel, command, func(c kernel.Command) { c.Run() })
+	drain()
+	for _, st := range s.Kernel.Plugins() {
+		if st.Manifest.ID == "bad" && (st.State != kernel.Failed || st.Restarting || st.Restarts != 0) {
+			t.Fatalf("shell restarted plugin without opt-in: %+v", st)
+		}
+	}
+	if setups != 1 {
+		t.Fatalf("ran Setup %d times; want 1", setups)
 	}
 }
 

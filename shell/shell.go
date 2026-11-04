@@ -9,7 +9,6 @@ import (
 	"log"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/xleotranx/wada-kit/contract/shell"
 	"github.com/xleotranx/wada-kit/kernel"
@@ -90,15 +89,10 @@ const (
 	stopped
 )
 
-// restartPolicy brings a plugin back after a run-time failure, unless it
-// fails again and again.
-var restartPolicy = kernel.Restart{Max: 3, Within: time.Minute}
-
 // New installs the shell's own plugin and then plugins, in that order.
 func New(opts Options, plugins ...kernel.Factory) (*Shell, error) {
 	s := &Shell{opts: opts, failed: map[string]failure{}}
-	s.Kernel = kernel.New(kernel.Options{Post: opts.Post, Invalidate: opts.Invalidate, Store: opts.Store, Strict: opts.Strict,
-		Restart: restartPolicy})
+	s.Kernel = kernel.New(kernel.Options{Post: opts.Post, Invalidate: opts.Invalidate, Store: opts.Store, Strict: opts.Strict})
 	// The shell reaches its own plugin as the one set up now.
 	newHost := func() kernel.Plugin {
 		s.host = &host{k: s.Kernel, setTheme: opts.SetTheme, setVibrancy: opts.SetVibrancy, notify: opts.Notify,

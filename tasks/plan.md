@@ -24,6 +24,22 @@ Explicit restart policy and shutdown guarantees require separate changes and
 compatibility review. Capability extraction, readiness and command redesign are
 outside this increment. Do not modify or require sibling apps.
 
+## Next increment: explicit restart policy
+
+Add `Manifest.Restart *Restart`: nil inherits an explicitly configured kernel
+default, a pointer to the zero value disables restart, and positive Max/Within
+values opt in with a bounded budget. Snapshot the policy at installation so caller
+mutation cannot alter restart safety. The shell stops setting an implicit global
+policy; its plugins stay Failed unless their manifests opt in. Keep the existing
+kernel Options.Restart for hosts that deliberately set a default. Nonpositive
+limits disable restart, including malformed time windows.
+
+Verify per-plugin precedence, budgets and time windows, default-off shell behavior,
+failed operations not being replayed, and existing strict/cleanup/retry behavior.
+Update lifecycle and shell documentation and provide a next-minor upgrade note.
+Run the standalone gate, build and external Notes consumer. App migrations and
+shutdown API changes remain separate work.
+
 ## Risks
 
 Strict mode must continue propagating panics. Rollback applies to registry state,

@@ -41,6 +41,11 @@ type Manifest struct {
 	Requires    []Named // service keys that must be provided before Setup runs
 	Locked      bool    // the user cannot disable it
 	DefaultOff  bool    // disabled until the user enables it
+	// Restart overrides Options.Restart for this plugin. Nil inherits the host's
+	// default; a pointer to the zero value disables automatic restart. Set a
+	// positive Max and Within only when repeating Setup after a failure is safe.
+	// The policy is copied at Install; a restart never replays a failed callback.
+	Restart *Restart
 }
 
 // Named is implemented by Key, Topic, Pipeline and Point.
@@ -122,8 +127,8 @@ type Options struct {
 	Background  func(func()) // optional: run off the UI thread; default is a goroutine
 	Store       Store        // required
 	Strict      bool         // re-panic instead of failing the plugin
-	// Restart brings back a plugin that failed after its Setup; the zero
-	// value never does.
+	// Restart is the default policy for plugins whose Manifest.Restart is nil.
+	// The zero value never restarts; plugins may explicitly override it.
 	Restart Restart
 	// Now is the clock for Restart's window; nil means time.Now.
 	Now func() time.Time
@@ -132,7 +137,8 @@ type Options struct {
 // Restart is how often the kernel sets a plugin up again after it failed at
 // run time, as when a view or listener panicked: up to Max times within
 // Within, and then it stays Failed until the user enables it. A Setup that
-// fails is not restarted, since it would fail the same way.
+// fails is not restarted, since it would fail the same way. Both Max and Within
+// must be positive; otherwise automatic restart is disabled.
 type Restart struct {
 	Max    int
 	Within time.Duration
@@ -162,6 +168,7 @@ type plugin struct {
 	workers   atomic.Int64
 
 	failures   []time.Time // run-time failures within the restart window
+	restart    Restart     // effective policy, copied at Install
 	restarting bool        // a restart is posted
 	meter      Meter       // UI-thread time in its callbacks
 }
@@ -289,7 +296,11 @@ func (k *Kernel) install(factories []Factory) error {
 				return fmt.Errorf("kernel: plugin %q requires a key it provides: %s", m.ID, r.Name())
 			}
 		}
-		rec := &plugin{make: f, fresh: p, m: m, index: len(k.plugins), state: Disabled}
+		rec := &plugin{make: f, fresh: p, m: m, index: len(k.plugins), state: Disabled, restart: k.opts.Restart}
+		if m.Restart != nil {
+			policy := *m.Restart
+			rec.m.Restart, rec.restart = &policy, policy
+		}
 		k.plugins = append(k.plugins, rec)
 		k.byID[m.ID] = rec
 	}
@@ -413,6 +424,10 @@ func (k *Kernel) Plugins() []Status {
 	out := make([]Status, 0, len(k.plugins))
 	for _, p := range k.plugins {
 		st := Status{Manifest: p.m, State: p.state, Err: p.err, Restarting: p.restarting, Restarts: k.recentRestarts(p)}
+		if p.m.Restart != nil {
+			policy := p.restart
+			st.Manifest.Restart = &policy
+		}
 		if p.state == Blocked {
 			st.Missing = k.missing(p)
 		}
@@ -663,8 +678,8 @@ func (k *Kernel) fail(p *plugin, err error) {
 // mayRestart counts a run-time failure of p and reports whether the policy
 // allows another restart.
 func (k *Kernel) mayRestart(p *plugin) bool {
-	r := k.opts.Restart
-	if r.Max <= 0 {
+	r := p.restart
+	if r.Max <= 0 || r.Within <= 0 {
 		return false
 	}
 	now := k.opts.Now()
@@ -683,7 +698,7 @@ func (k *Kernel) recentRestarts(p *plugin) int {
 	}
 	now, n := k.opts.Now(), 0
 	for _, t := range p.failures {
-		if now.Sub(t) < k.opts.Restart.Within {
+		if now.Sub(t) < p.restart.Within {
 			n++
 		}
 	}
