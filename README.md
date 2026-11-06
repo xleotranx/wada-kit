@@ -45,7 +45,7 @@ deploy keys, or `GOPRIVATE` configuration.
 Add the kit to your app:
 
 ```sh
-go get github.com/xleotranx/wada-kit@v0.2.0
+go get github.com/xleotranx/wada-kit@v0.3.0
 ```
 
 An app owns its `main.go`, plugins, contracts, packaging configuration, bundle

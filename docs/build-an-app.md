@@ -25,7 +25,7 @@ make run
 ```
 
 The command refuses an existing destination. It creates an independent module
-pinned to v0.2.0 and the kit checkout's Go/MyGo/Onevra combination. Use
+pinned to v0.3.0 and the kit checkout's Go/MyGo/Onevra combination. Use
 `--kit-version vX.Y.Z` to select another published release compatible with this
 starter. It never writes to developer data during generation or tests.
 

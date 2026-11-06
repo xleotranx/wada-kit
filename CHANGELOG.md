@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 — 2026-11-07
 
 ### Added
 
@@ -14,7 +14,7 @@
   page removal select the effective default/fallback and emit PageChanged; an
   empty ID means no page remains. Consumers that used ShowPage for arbitrary
   routing must contribute the page first. Consumers should handle initial and
-  fallback events as well as explicit navigation. Release this with a minor
+  fallback events as well as explicit navigation. This release uses a minor
   version bump under the v0 compatibility policy.
 
 ## v0.2.0 — 2026-11-05
