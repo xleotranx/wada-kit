@@ -289,6 +289,9 @@ another schema is refused, not rewritten: the app keeps settings in memory for t
 and says so. Plugins never see this SQL; one that needs a database of its own keeps
 it in `shell.Host.DataDir`, named after its ID.
 
+For an independent consumer scaffold and executable async document pattern, see
+[Build an app](build-an-app.md) and the [document recipe](recipes/async-document.md).
+
 ## Example
 
 The notes plugin of `examples/notes` (shortened here) adds a page, a command in the

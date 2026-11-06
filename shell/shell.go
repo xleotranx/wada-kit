@@ -110,6 +110,9 @@ func New(opts Options, plugins ...kernel.Factory) (*Shell, error) {
 func (s *Shell) Start() error {
 	kernel.On(s.Kernel, kernel.PluginsChanged, s.pluginsChanged)
 	kernel.On(s.Kernel, kernel.PointChanged, func(point string) {
+		if point == shell.Pages.Name() {
+			s.host.reconcilePage()
+		}
 		if point == kernel.Commands.Name() {
 			s.buildMenu()
 		}
@@ -136,6 +139,7 @@ func (s *Shell) NoticeClicked(id string) { kernel.Emit(s.Kernel, shell.NoticeCli
 // one the kernel restarts as a warning, one that stays stopped as an error.
 // The menu is rebuilt as well whenever the commands change.
 func (s *Shell) pluginsChanged(all []kernel.Status) {
+	s.host.reconcilePage()
 	s.buildMenu()
 	for _, st := range all {
 		now := working
@@ -484,6 +488,28 @@ func (h *host) Setup(c *kernel.Context) error {
 }
 
 func (h *host) ShowPage(id string) {
+	pages := kernel.Items(h.k, shell.Pages)
+	if !slices.ContainsFunc(pages, func(e kernel.Entry[shell.Page]) bool { return e.ID == id }) {
+		return
+	}
+	h.setPage(id)
+}
+
+// reconcilePage runs after activation or queued contribution changes, never
+// during rendering. PageChanged describes the effective page, including fallback.
+func (h *host) reconcilePage() {
+	pages := kernel.Items(h.k, shell.Pages)
+	if slices.ContainsFunc(pages, func(e kernel.Entry[shell.Page]) bool { return e.ID == h.page }) {
+		return
+	}
+	id := ""
+	if len(pages) > 0 {
+		id = pages[0].ID
+	}
+	h.setPage(id)
+}
+
+func (h *host) setPage(id string) {
 	if id == h.page {
 		return
 	}

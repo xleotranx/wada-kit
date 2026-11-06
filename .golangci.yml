@@ -38,7 +38,7 @@ linters:
             - "github.com/xleotranx/wada-kit/contract"
             - "github.com/xleotranx/wada-kit/native"
         plugins:
-          files: ["**/plugins/**/*.go", "!$test"]
+          files: ["**/plugins/**/*.go", "!**/examples/**", "!$test"]
           list-mode: strict
           allow:
             - "$gostd"

@@ -17,3 +17,15 @@ fi
 go mod tidy
 go test ./...
 go build ./...
+# Exercise the actual new-app command too: rewritten internal imports, pinned
+# tools, guard tests, packaging metadata and the documented consumer gate.
+new_app_args=("$consumer_dir/starter" example.com/wada-kit-starter --name "Consumer Starter" --folder consumer-starter --env CONSUMER_STARTER)
+if [[ $# -eq 0 ]]; then
+  new_app_args+=(--kit-dir "$kit_root")
+else
+  new_app_args+=(--kit-version "$1")
+fi
+bash "$kit_root/scripts/new-app.sh" "${new_app_args[@]}"
+cd "$consumer_dir/starter"
+go mod tidy
+make check

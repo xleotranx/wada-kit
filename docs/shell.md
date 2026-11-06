@@ -104,8 +104,13 @@ Whenever `StripBg` is not opaque the root draws no background. `Bg` stays solid 
 cards, bubbles and inputs. The `appearance` setting is System, Light or Dark (the
 default).
 
-`shell.Host.ShowPage` emits `shell.PageChanged` with the ID it chose whenever that
-differs from the last one.
+`shell.Host.ShowPage` ignores unknown IDs. Startup selects the lowest-order page.
+When the selected contribution disappears, the shell selects the lowest-order
+remaining page, or an empty ID when none remain. `Host.Page` and `PageChanged`
+report that selection; startup and fallback emit changes too. Plugin activation
+and removal reconcile selection before reporting plugin status; scoped page
+contribution changes reconcile in their queued `PointChanged` notification.
+Rendering itself performs no navigation mutation.
 
 Every render, command and title callback runs through `kernel.Invoke`, so a panic
 fails its owning plugin and blocks its dependents. The plugin stays stopped unless

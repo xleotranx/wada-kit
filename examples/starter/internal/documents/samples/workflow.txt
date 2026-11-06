@@ -1,0 +1,8 @@
+Workflow
+
+1. Keep business logic in ordinary Go packages.
+2. Register pages and commands in plugin Setup.
+3. Start work from handlers with immutable inputs.
+4. Give each open document its own child scope.
+5. Render state; handle loading, failure, retry and empty results explicitly.
+6. Run make check before handing the app back.

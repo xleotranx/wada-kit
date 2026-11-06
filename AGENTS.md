@@ -5,6 +5,13 @@ A reusable native MyGo desktop kit. This repository owns one Go module,
 an app, PiG, or an app's contracts. Apps consume it; their behavior stays in their
 own repositories.
 
+## Building a consumer app
+
+When asked to build a new app using this checkout, start with
+`docs/build-an-app.md` and `scripts/new-app.sh`. Create an independent app with
+its own consumer AGENTS.md; use `examples/starter` for async document lifetimes
+and checks. The rules below govern changes to the kit itself.
+
 ## Source map
 
 - `kernel`: standard library only; plugin lifecycle, scopes, services, events,
@@ -17,6 +24,7 @@ own repositories.
   same public contracts as app plugins.
 - `kittest`: fake host, palette guard and goroutine guard for consumers.
 - `examples/notes`: small reference app; must never need Wada.
+- `examples/starter`: source for generated independent apps and the async recipe.
 
 ## Rules
 
@@ -43,8 +51,9 @@ own repositories.
 ## Verification
 
 `GOWORK=off make check` runs MyGo lifetime vet, pinned lint, race tests and no-cgo
-tests, including the Notes app. `go build ./...` checks compilation. Native checks
-run on macOS. `go run ./examples/notes` runs the reference app; use a temporary
+tests, including the Notes app and generated starter consumer. `go build ./...`
+checks compilation. Native checks run on macOS. `go run ./examples/notes` runs
+the reference app; use a temporary
 `NOTES_DATA_DIR` for experiments and captures, never developer data.
 
-See `README.md` for private-module access and optional local workspaces.
+See `README.md` for public-module access and optional local workspaces.

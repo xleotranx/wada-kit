@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Consumer guide, independent app creation command, and compiled starter with
+  async document scopes, retry, saved selection and deterministic lifecycle tests.
+- External consumer verification now exercises the generated starter and its gate.
+
+### Changed
+
+- **Breaking behavior:** shell navigation ignores unknown page IDs. Startup and
+  page removal select the effective default/fallback and emit PageChanged; an
+  empty ID means no page remains. Consumers that used ShowPage for arbitrary
+  routing must contribute the page first. Consumers should handle initial and
+  fallback events as well as explicit navigation. Release this with a minor
+  version bump under the v0 compatibility policy.
+
 ## v0.2.0 — 2026-11-05
 
 ### Added

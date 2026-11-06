@@ -47,8 +47,9 @@ var (
 	// after the shell has brought the window to the front.
 	NoticeClicked = kernel.NewTopic[string]("shell.notice-clicked")
 
-	// PageChanged carries the ID that Host.ShowPage chose, each time it
-	// chooses a different page than the last one.
+	// PageChanged carries the effective page ID after navigation, startup or
+	// fallback. An empty ID means no page remains. Contribution changes are
+	// reconciled when their queued PointChanged notification runs.
 	PageChanged = kernel.NewTopic[string]("shell.page-changed")
 )
 
@@ -69,9 +70,9 @@ type Notice struct {
 
 // Host is what the shell does for plugins. Call it on the UI thread.
 type Host interface {
-	// ShowPage shows the Pages entry with this ID.
+	// ShowPage shows the Pages entry with this ID; unknown IDs are ignored.
 	ShowPage(id string)
-	// Page is the ID of the page on show.
+	// Page is the selected page ID, or empty when there are no pages.
 	Page() string
 	// Toast shows a transient notice.
 	Toast(t ui.Toast)

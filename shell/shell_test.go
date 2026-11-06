@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -40,7 +41,12 @@ func text(s string) shell.View {
 func newShell(t *testing.T, plugins ...kernel.Factory) (*Shell, func()) {
 	t.Helper()
 	var queue []func()
-	s, err := New(Options{Name: "Kit", Post: func(fn func()) { queue = append(queue, fn) }, Store: kerneltest.NewStore()}, plugins...)
+	var mu sync.Mutex
+	s, err := New(Options{Name: "Kit", Post: func(fn func()) {
+		mu.Lock()
+		queue = append(queue, fn)
+		mu.Unlock()
+	}, Store: kerneltest.NewStore()}, plugins...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,9 +59,15 @@ func newShell(t *testing.T, plugins ...kernel.Factory) (*Shell, func()) {
 		s.Close(ctx)
 	})
 	return s, func() {
-		for len(queue) > 0 {
+		for {
+			mu.Lock()
+			if len(queue) == 0 {
+				mu.Unlock()
+				return
+			}
 			fn := queue[0]
 			queue = queue[1:]
+			mu.Unlock()
 			fn()
 		}
 	}
@@ -137,16 +149,73 @@ func TestStripReplacesThePageTitle(t *testing.T) {
 func TestShowPageAnnouncesEachChange(t *testing.T) {
 	var got []string
 	p := &plugin{id: "watch", setup: func(c *kernel.Context) error {
+		for i, id := range []string{"a", "b"} {
+			kernel.Contribute(c, shell.Pages, "watch."+id, i, shell.Page{Render: func(*ui.Context) {}})
+		}
 		kernel.On(c, shell.PageChanged, func(id string) { got = append(got, id) })
 		return nil
 	}}
 	s, _ := newShell(t, p.New)
 	host, _ := kernel.Use(s.Kernel, shell.HostKey)
-	for _, id := range []string{"a", "a", "b", "a"} {
+	got = nil // startup selects the default page
+	for _, id := range []string{"watch.b", "watch.b", "watch.a", "watch.b"} {
 		host.ShowPage(id)
 	}
-	if !slices.Equal(got, []string{"a", "b", "a"}) {
+	if !slices.Equal(got, []string{"watch.b", "watch.a", "watch.b"}) {
 		t.Fatalf("PageChanged %q", got)
+	}
+}
+
+func TestNavigationTracksDefaultAndRemovedPages(t *testing.T) {
+	var pageScope *kernel.Scope
+	var changes []string
+	p := &plugin{id: "pages", setup: func(c *kernel.Context) error {
+		kernel.On(c, shell.PageChanged, func(id string) { changes = append(changes, id) })
+		kernel.Contribute(c, shell.Pages, "pages.first", 0, shell.Page{Render: func(c *ui.Context) { ui.Text(c, "First") }})
+		pageScope = c.NewScope()
+		return kernel.Contribute(pageScope, shell.Pages, "pages.second", 1, shell.Page{Render: func(c *ui.Context) { ui.Text(c, "Second") }})
+	}}
+	s, drain := newShell(t, p.New)
+	host, _ := kernel.Use(s.Kernel, shell.HostKey)
+	var laterChanges []string
+	kernel.On(s.Kernel, shell.PageChanged, func(id string) { laterChanges = append(laterChanges, id) })
+	if host.Page() != "pages.first" {
+		t.Fatalf("default page = %q", host.Page())
+	}
+	host.ShowPage("missing")
+	if host.Page() != "pages.first" {
+		t.Fatalf("invalid navigation changed page: %q", host.Page())
+	}
+	host.ShowPage("pages.second")
+	pageScope.Dispose()
+	drain()
+	if host.Page() != "pages.first" {
+		t.Fatalf("removed page = %q", host.Page())
+	}
+	tt := ui.NewTester(s.View, 900, 640)
+	tt.Frame()
+	if !tt.HasText("First") {
+		t.Fatalf("fallback not rendered: %q", tt.Texts())
+	}
+	if err := s.Kernel.Disable("pages"); err != nil {
+		t.Fatal(err)
+	}
+	drain()
+	if host.Page() != "" {
+		t.Fatalf("empty window page = %q", host.Page())
+	}
+	if !slices.Equal(changes, []string{"pages.first", "pages.second", "pages.first"}) {
+		t.Fatalf("changes = %q", changes)
+	}
+	if !slices.Equal(laterChanges, []string{"pages.second", "pages.first", ""}) {
+		t.Fatalf("fallback events = %q", laterChanges)
+	}
+	if err := kernel.Contribute(s.Kernel, shell.Pages, "app.late", 0, shell.Page{Render: func(*ui.Context) {}}); err != nil {
+		t.Fatal(err)
+	}
+	drain()
+	if host.Page() != "app.late" {
+		t.Fatalf("late default = %q", host.Page())
 	}
 }
 

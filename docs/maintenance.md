@@ -44,11 +44,14 @@ only when a consumer requires it. Do not move an existing tag to repair a releas
 ## Checks
 
 `GOWORK=off make check` runs the kit gate independently of any sibling app.
-Run `scripts/check-consumer.sh` too; it copies the public Notes example
-into a temporary external module and tests it against the candidate kit through
-a temporary replacement. This checks external imports and exported APIs.
+The gate includes `scripts/check-consumer.sh`: it copies Notes into a temporary
+external module and generates an independent starter, then checks both against
+the candidate kit through temporary replacements. The starter runs its own
+lifetime vet, import lint, race/no-cgo tests and build. Generation and its
+safety/identity tests use Bash and standard Unix tools. This checks exported APIs
+and the documented new-app workflow.
 
-For a published release, `scripts/check-consumer.sh v0.1.0` instead downloads and
+For a published release, `scripts/check-consumer.sh v0.2.0` instead downloads and
 tests that tag with no replacement. The public module needs no GitHub credentials
 or `GOPRIVATE` configuration.
 

@@ -1,0 +1,5 @@
+Welcome
+
+This is your app's first feature. Choose Workflow to switch documents.
+The document body loads off the UI thread. Settings remembers the last document.
+Replace these embedded samples with your application's repository.

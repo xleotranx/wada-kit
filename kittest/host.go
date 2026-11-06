@@ -48,8 +48,9 @@ func (h *Host) Setup(c *kernel.Context) error {
 	return kernel.Provide[shell.Host](c, shell.HostKey, h)
 }
 
-// ShowPage records the page and emits shell.PageChanged when it changed, as
-// the shell does.
+// ShowPage records a navigation request and emits shell.PageChanged when it
+// changes. This recording fake does not resolve page contributions or fallback;
+// use shell.New for integration tests of effective navigation.
 func (h *Host) ShowPage(id string) {
 	if id == h.PageID {
 		return

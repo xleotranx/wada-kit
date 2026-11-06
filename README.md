@@ -22,6 +22,13 @@ contracts on top. Apps consume tagged releases from this independent repository.
 Notes: [kernel API](docs/kernel-api.md), [shell and the kit's plugins](docs/shell.md).
 Upgrading from v0.1? Read the [v0.2 upgrade guide](docs/upgrading-v0.2.md).
 
+## Build a new app
+
+Agents and app authors: start with [Build an app](docs/build-an-app.md). It includes
+a generation command, a tested independent starter and an
+[async document recipe](docs/recipes/async-document.md). The starter lives in
+`examples/starter`; Notes remains the smallest API example.
+
 ## Use
 
 ```go
@@ -69,8 +76,8 @@ consumer access, and the release checks. [Changelog](CHANGELOG.md) records relea
 ## Check
 
 `make check`: MyGo lifetime vet, pinned lint (the import boundaries; nothing here
-imports an app), race tests and no-cgo tests. Checks run locally; this repository
-has no automated CI workflow.
+imports an app), race tests, no-cgo tests and generated external-consumer checks.
+Checks run locally; this repository has no automated CI workflow.
 
 ## License
 
