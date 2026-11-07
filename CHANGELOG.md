@@ -6,6 +6,8 @@
 
 - Manifest dependency slices are copied at installation and in status/diagnostic
   snapshots, so changes to caller-owned slices cannot alter the installed graph.
+- Events deliver nil interface payloads without incorrectly failing the receiving
+  plugin; typed nil pointer payloads retain their dynamic types.
 
 ## v0.3.0 — 2026-11-07
 

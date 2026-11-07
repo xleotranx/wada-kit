@@ -48,6 +48,10 @@ Import rules, enforced by depguard in the kit's and the app's `.golangci.yml`:
 
 Anything with many contributors is a `Point`; a `Key` has one provider.
 
+`Emit` delivers payloads synchronously in subscription order, including nil
+interface payloads (for example, `nil` on a `Topic[error]`). A typed nil pointer
+held in an interface keeps its dynamic type.
+
 ## Manifest
 
 - `ID` matches `[a-z][a-z0-9-]*` and prefixes every entry the plugin contributes

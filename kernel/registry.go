@@ -118,7 +118,13 @@ func On[T any](o Owner, t Topic[T], fn func(T)) (off func()) {
 		tp = &topic{}
 		s.k.topics[t.name] = tp
 	}
-	l := &listener{s: s, call: func(v any) { fn(v.(T)) }}
+	l := &listener{s: s, call: func(v any) {
+		var value T
+		if v != nil { // A nil interface payload has no dynamic type to assert.
+			value = v.(T)
+		}
+		fn(value)
+	}}
 	tp.listeners = append(tp.listeners, l)
 	var d *disposer
 	off = func() {
@@ -139,7 +145,8 @@ func On[T any](o Owner, t Topic[T], fn func(T)) (off func()) {
 
 // Emit calls the listeners subscribed before it started, synchronously and in
 // subscription order. A panicking listener fails its plugin; the rest still run.
-// An emission cannot start from a disposed owner.
+// Nil interface payloads are delivered unchanged. An emission cannot start from
+// a disposed owner.
 func Emit[T any](o Owner, t Topic[T], v T) {
 	s := o.owner()
 	if !s.alive {
