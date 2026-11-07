@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Manifest dependency slices are copied at installation and in status/diagnostic
+  snapshots, so changes to caller-owned slices cannot alter the installed graph.
+
 ## v0.3.0 — 2026-11-07
 
 ### Added

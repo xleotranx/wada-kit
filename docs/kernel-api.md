@@ -56,6 +56,9 @@ Anything with many contributors is a `Point`; a `Key` has one provider.
 - `Provides` lists the keys Setup must provide; `Requires` the keys that must have a
   provider before Setup runs. Requirements are keys, not plugin IDs: a plugin that
   requires `shell.HostKey` doesn't care which plugin provides it.
+  Install copies both dependency slices. The manifests returned by `Plugins`,
+  `Inspect` and `PluginsChanged` have independent dependency slices too; editing
+  them cannot change the installed dependency graph.
 - `Locked` plugins can't be disabled. `DefaultOff` plugins start disabled until the
   user enables them once.
 - `Restart` is an optional `*Restart` policy, copied at Install. Nil inherits

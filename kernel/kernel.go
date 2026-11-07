@@ -283,6 +283,8 @@ func (k *Kernel) install(factories []Factory) error {
 			return errors.New("kernel: a factory made no plugin")
 		}
 		m := p.Manifest()
+		m.Provides = slices.Clone(m.Provides)
+		m.Requires = slices.Clone(m.Requires)
 		if !pluginID.MatchString(m.ID) || m.ID == kernelNamespace || m.ID+"." == HostPrefix {
 			return fmt.Errorf("kernel: invalid plugin ID %q", m.ID)
 		}
@@ -425,11 +427,14 @@ func (k *Kernel) lookup(id string) (*plugin, error) {
 	return p, nil
 }
 
-// Plugins reports every installed plugin in install order.
+// Plugins reports every installed plugin in install order. Manifest dependency
+// slices are copied so modifying a snapshot cannot change the installed graph.
 func (k *Kernel) Plugins() []Status {
 	out := make([]Status, 0, len(k.plugins))
 	for _, p := range k.plugins {
 		st := Status{Manifest: p.m, State: p.state, Err: p.err, Restarting: p.restarting, Restarts: k.recentRestarts(p)}
+		st.Manifest.Provides = slices.Clone(p.m.Provides)
+		st.Manifest.Requires = slices.Clone(p.m.Requires)
 		if p.m.Restart != nil {
 			policy := p.restart
 			st.Manifest.Restart = &policy
