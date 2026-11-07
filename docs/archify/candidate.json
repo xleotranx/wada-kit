@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "How an app runs on wada-kit",
+    "locale": "en",
+    "output": ".archify/architecture-wada-kit-runtime-20261107-080558/wada-kit-runtime.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:xleotranx/wada-kit.git",
+      "link_mode": "local-only",
+      "revision": "774e87bfffd8aa173aa813427ec5215f228f372f"
+    }
+  },
+  "components": [
+    {
+      "id": "app",
+      "type": "external",
+      "label": "Consumer app",
+      "sublabel": "main: shell.Run(...)",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        140,
+        64
+      ],
+      "sources": [
+        {
+          "path": "examples/notes/main.go",
+          "line": 27,
+          "end_line": 35,
+          "label": "Run entry"
+        }
+      ]
+    },
+    {
+      "id": "shell",
+      "type": "backend",
+      "label": "Shell",
+      "sublabel": "frame, menus, host",
+      "pos": [
+        270,
+        300
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "shell/shell.go",
+          "line": 1,
+          "end_line": 4,
+          "label": "package doc"
+        },
+        {
+          "path": "shell/shell.go",
+          "line": 93,
+          "end_line": 107,
+          "label": "New installs host"
+        },
+        {
+          "path": "shell/shell.go",
+          "line": 175,
+          "end_line": 225,
+          "label": "View each frame"
+        }
+      ]
+    },
+    {
+      "id": "kernel",
+      "type": "backend",
+      "label": "Kernel",
+      "sublabel": "scopes, registries",
+      "pos": [
+        610,
+        300
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "kernel/kernel.go",
+          "line": 1,
+          "end_line": 4,
+          "label": "package doc"
+        },
+        {
+          "path": "kernel/kernel.go",
+          "line": 228,
+          "end_line": 244,
+          "label": "New"
+        },
+        {
+          "path": "kernel/kernel.go",
+          "line": 364,
+          "end_line": 387,
+          "label": "Start"
+        }
+      ]
+    },
+    {
+      "id": "plugins",
+      "type": "backend",
+      "label": "Plugins",
+      "sublabel": "app, settings, inspector",
+      "tag": "same contract",
+      "pos": [
+        940,
+        300
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "examples/notes/main.go",
+          "line": 50,
+          "end_line": 67,
+          "label": "app plugin"
+        },
+        {
+          "path": "plugins/settings/plugin.go",
+          "line": 29,
+          "end_line": 49,
+          "label": "kit settings"
+        },
+        {
+          "path": "plugins/inspector/plugin.go",
+          "line": 30,
+          "end_line": 47,
+          "label": "kit inspector"
+        }
+      ]
+    },
+    {
+      "id": "window",
+      "type": "external",
+      "label": "MyGo window",
+      "sublabel": "native controls, web view",
+      "pos": [
+        270,
+        90
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "shell/run.go",
+          "line": 76,
+          "end_line": 87,
+          "label": "mygo.NewWindow"
+        },
+        {
+          "path": "shell/webview.go",
+          "line": 12,
+          "end_line": 23,
+          "label": "plugin WebView"
+        }
+      ]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Settings store",
+      "sublabel": "settings.db (SQLite)",
+      "pos": [
+        610,
+        90
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "shell/store.go",
+          "line": 41,
+          "end_line": 82,
+          "label": "openStore"
+        },
+        {
+          "path": "shell/store.go",
+          "line": 84,
+          "end_line": 113,
+          "label": "Load, Save"
+        },
+        {
+          "path": "shell/run.go",
+          "line": 64,
+          "end_line": 74,
+          "label": "store fallback"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "app-run",
+      "from": "app",
+      "to": "shell",
+      "label": "shell.Run",
+      "variant": "emphasis"
+    },
+    {
+      "id": "shell-start",
+      "from": "shell",
+      "to": "kernel",
+      "label": "Install, Start"
+    },
+    {
+      "id": "kernel-setup",
+      "from": "kernel",
+      "to": "plugins",
+      "label": "Setup(c)"
+    },
+    {
+      "id": "plugin-register",
+      "from": "plugins",
+      "to": "kernel",
+      "label": "registers via c",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          1030,
+          410
+        ],
+        [
+          700,
+          410
+        ]
+      ]
+    },
+    {
+      "id": "plugin-host",
+      "from": "plugins",
+      "to": "shell",
+      "label": "shell.Host",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          1140,
+          332
+        ],
+        [
+          1140,
+          470
+        ],
+        [
+          360,
+          470
+        ]
+      ],
+      "labelSegment": 2
+    },
+    {
+      "id": "shell-window",
+      "from": "shell",
+      "to": "window",
+      "label": "draws frames"
+    },
+    {
+      "id": "kernel-store",
+      "from": "kernel",
+      "to": "store",
+      "label": "Load / Save"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Repository split",
+      "items": [
+        "kernel is standard-library only: lifecycle, scopes, services, points, settings",
+        "contract/shell declares Pages, Strip, TitleBar, Overlays and HostKey",
+        "shell, native, settings and inspector ship with the kit; apps own main and plugins, and the kit never imports them"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Frame and thread rules",
+      "items": [
+        "Shell.View reads each point and calls kernel.Invoke, so a panicking view fails only its plugin",
+        "Render builds elements and performs no I/O or kernel mutation; handlers do the work",
+        "Workers run through kernel.Go or Scope.Spawn, never a bare goroutine"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "State, failure and tests",
+      "items": [
+        "Settings are namespaced JSON in settings.db; writes are batched on a worker",
+        "A failed Setup disposes what it registered; a run-time failure can restart within its policy",
+        "kittest fakes shell.Host and guards palette colors and goroutines; examples/notes is the reference app"
+      ]
+    }
+  ]
+}

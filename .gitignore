@@ -4,3 +4,4 @@
 /go.work.sum
 mygo_windows_*.syso
 .DS_Store
+.archify/architecture-wada-kit-runtime-20261107-080558/
