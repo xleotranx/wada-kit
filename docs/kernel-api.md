@@ -47,6 +47,8 @@ Import rules, enforced by depguard in the kit's and the app's `.golangci.yml`:
 | `Settings`, `Setting[T]` | JSON values namespaced to the plugin; `Setting.Get` keeps what it decoded until a setting changes | one namespace per plugin |
 
 Anything with many contributors is a `Point`; a `Key` has one provider.
+The [extension guide](extensions.md) explains when to choose each mechanism and
+walks through a tested two-plugin example.
 
 `Emit` delivers payloads synchronously in subscription order, including nil
 interface payloads (for example, `nil` on a `Topic[error]`). A typed nil pointer

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- Extension guide and runnable headless two-plugin notebook example covering
+  services, topics, pipelines and points, with deterministic integration tests
+  for preparation, rejection, ordering and plugin disposal/recovery.
+
 ### Fixed
 
 - Manifest dependency slices are copied at installation and in status/diagnostic

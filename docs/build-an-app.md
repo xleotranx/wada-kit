@@ -69,7 +69,7 @@ extension points are available when a real interaction needs them; consult the
 | Smallest page, command and settings section | `examples/notes/main.go` |
 | Independent app structure and checks | `examples/starter/` and `scripts/new-app.sh` |
 | Document loads, navigation, errors and cancellation | [Async document recipe](recipes/async-document.md) |
-| Typed communication between plugins | [Kernel concepts and contracts](kernel-api.md#concepts) |
+| Services, topics, pipelines and points between plugins | [Extension guide](extensions.md) and tested `examples/extensions/` |
 | Window slots, menus, data directory and screenshots | [Shell API](shell.md) |
 
 The starter's embedded files keep it runnable without writing domain data. Replace

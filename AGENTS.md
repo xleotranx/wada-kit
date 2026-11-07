@@ -24,6 +24,8 @@ and checks. The rules below govern changes to the kit itself.
   same public contracts as app plugins.
 - `kittest`: fake host, palette guard and goroutine guard for consumers.
 - `examples/notes`: small reference app; must never need Wada.
+- `examples/extensions`: headless two-plugin contracts and lifecycle example;
+  see `docs/extensions.md` for choosing services, topics, pipelines and points.
 - `examples/starter`: source for generated independent apps and the async recipe.
 
 ## Rules

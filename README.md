@@ -18,8 +18,10 @@ contracts on top. Apps consume tagged releases from this independent repository.
 | `plugins/inspector` | Plugin diagnostics |
 | `kittest` | A fake `shell.Host` and the palette guard for an app's tests |
 | `examples/notes` | The smallest app on the kit |
+| `examples/extensions` | A tested, headless two-plugin example of services, topics, pipelines and points |
 
 Notes: [kernel API](docs/kernel-api.md), [shell and the kit's plugins](docs/shell.md).
+Read the [extension guide](docs/extensions.md) when plugins need shared contracts.
 Upgrading from v0.1? Read the [v0.2 upgrade guide](docs/upgrading-v0.2.md).
 
 ## Build a new app
