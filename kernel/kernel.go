@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"runtime/debug"
 	"slices"
@@ -291,9 +292,20 @@ func (k *Kernel) install(factories []Factory) error {
 		if k.byID[m.ID] != nil {
 			return fmt.Errorf("kernel: duplicate plugin ID %q", m.ID)
 		}
-		for _, n := range append(slices.Clone(m.Provides), m.Requires...) {
-			if n == nil || n.Name() == "" {
-				return fmt.Errorf("kernel: plugin %q declares an unnamed key", m.ID)
+		for _, keys := range [][]Named{m.Provides, m.Requires} {
+			for i, n := range keys {
+				v := reflect.ValueOf(n)
+				if !v.IsValid() || v.Kind() == reflect.Pointer && v.IsNil() {
+					return fmt.Errorf("kernel: plugin %q declares an unnamed key", m.ID)
+				}
+				key, ok := n.(interface{ serviceKey() Named })
+				if !ok {
+					return fmt.Errorf("kernel: plugin %q declaration %q must be a service key", m.ID, n.Name())
+				}
+				keys[i] = key.serviceKey()
+				if keys[i].Name() == "" {
+					return fmt.Errorf("kernel: plugin %q declares an unnamed key", m.ID)
+				}
 			}
 		}
 		for _, r := range m.Requires {

@@ -8,6 +8,9 @@
   snapshots, so changes to caller-owned slices cannot alter the installed graph.
 - Events deliver nil interface payloads without incorrectly failing the receiving
   plugin; typed nil pointer payloads retain their dynamic types.
+- Manifest `Provides` and `Requires` reject non-service declarations during
+  installation instead of accepting invalid dependencies. Non-nil key pointers
+  are snapshotted as values; nil key pointers return validation errors.
 
 ## v0.3.0 — 2026-11-07
 

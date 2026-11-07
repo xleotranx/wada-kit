@@ -60,7 +60,10 @@ held in an interface keeps its dynamic type.
 - `Provides` lists the keys Setup must provide; `Requires` the keys that must have a
   provider before Setup runs. Requirements are keys, not plugin IDs: a plugin that
   requires `shell.HostKey` doesn't care which plugin provides it.
-  Install copies both dependency slices. The manifests returned by `Plugins`,
+  Both lists accept `Key[T]` values or non-nil pointers to them. Install rejects
+  topics, pipelines, points, name-only declarations and unnamed or nil keys.
+  Install copies both dependency slices and snapshots pointer keys as values.
+  The manifests returned by `Plugins`,
   `Inspect` and `PluginsChanged` have independent dependency slices too; editing
   them cannot change the installed dependency graph.
 - `Locked` plugins can't be disabled. `DefaultOff` plugins start disabled until the

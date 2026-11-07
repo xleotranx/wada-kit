@@ -36,6 +36,9 @@ func NewKey[T any](name string) Key[T] {
 }
 func (k Key[T]) Name() string { return k.name }
 
+// serviceKey identifies service declarations and snapshots pointer keys as values.
+func (k Key[T]) serviceKey() Named { return k }
+
 type service struct {
 	value any
 	by    *plugin
