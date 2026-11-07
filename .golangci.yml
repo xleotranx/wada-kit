@@ -55,6 +55,13 @@ linters:
           files: ["**/native/*.go", "!$test"]
           list-mode: strict
           allow: ["$gostd", "github.com/egoist/mygo/ui", "github.com/oneo-me/onevra/source"]
+        extension-plugins:
+          files: ["**/examples/extensions/internal/plugins/**/*.go", "!$test"]
+          list-mode: strict
+          allow:
+            - "$gostd"
+            - "github.com/xleotranx/wada-kit/kernel"
+            - "github.com/xleotranx/wada-kit/examples/extensions/internal/contract"
         examples:
           files: ["**/examples/**/*.go"]
           list-mode: strict
