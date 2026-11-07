@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.1 — 2026-11-07
 
 ### Added
 
@@ -16,7 +16,9 @@
   plugin; typed nil pointer payloads retain their dynamic types.
 - Manifest `Provides` and `Requires` reject non-service declarations during
   installation instead of accepting invalid dependencies. Non-nil key pointers
-  are snapshotted as values; nil key pointers return validation errors.
+  are snapshotted as values; nil key pointers return validation errors. Plugins
+  using custom name-only values must declare the corresponding `kernel.Key[T]`
+  instead.
 
 ## v0.3.0 — 2026-11-07
 

@@ -11,7 +11,7 @@ Usage: bash scripts/new-app.sh DESTINATION MODULE [options]
   --folder FOLDER       Unique data folder (default: destination name)
   --env PREFIX          Environment prefix (default: upper-case folder)
   --identifier ID       Bundle identifier (default: com.example.<folder>)
-  --kit-version TAG     Published kit version (default: v0.3.0)
+  --kit-version TAG     Published kit version (default: v0.3.1)
   --kit-dir PATH        Explicit local development replacement
   -h, --help            Show this help
 
@@ -29,7 +29,7 @@ app_name='My App'
 folder=''
 env_prefix=''
 identifier=''
-kit_version=v0.3.0
+kit_version=v0.3.1
 kit_dir=''
 while [[ $# -gt 0 ]]; do
   case "$1" in

@@ -51,7 +51,7 @@ lifetime vet, import lint, race/no-cgo tests and build. Generation and its
 safety/identity tests use Bash and standard Unix tools. This checks exported APIs
 and the documented new-app workflow.
 
-For a published release, `scripts/check-consumer.sh v0.3.0` instead downloads and
+For a published release, `scripts/check-consumer.sh v0.3.1` instead downloads and
 tests that tag with no replacement. The public module needs no GitHub credentials
 or `GOPRIVATE` configuration.
 
