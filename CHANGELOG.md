@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- MyGo v0.7.4 → v0.8.3. The kit needed no code changes, but apps inherit 0.8's
+  behavior: inactive windows fade the accent to gray, `Opacity` fades an element
+  and its children as one, and presses and drags follow only the primary button.
+  `HandleInput` now receives every key, so handlers that react to any key also
+  fire on Shift; check `ev.Key != ui.KeyUnknown`. Handlers should return false
+  for keys they don't use, or Alt stops opening the menu bar on Windows and Linux.
+- Onevra stays at v0.2026.13. Its own Select search keyboard and split divider
+  tests fail on MyGo 0.8, also on Onevra v0.2026.18. The kit uses neither control;
+  apps that do should test them.
+
 ## v0.3.1 — 2026-11-07
 
 ### Added
